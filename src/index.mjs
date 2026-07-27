@@ -1,6 +1,6 @@
-// Programmatic API, for embedding outloud in a hook or another tool.
+// Programmatic API, for embedding sayeth in a hook or another tool.
 //
-//   import { speak } from 'outloud'
+//   import { speak } from 'sayeth'
 //   await speak('Deploy verified.')
 
 import { loadConfig } from './config.mjs'
@@ -15,6 +15,6 @@ export async function speak(text, { flags = {}, env, configFile } = {}) {
   const cfg = loadConfig({ flags, env, ...(configFile ? { path: configFile } : {}) })
   const backend = getBackend(cfg.backend)
   const spoken = trimToSpoken(text, cfg.maxChars)
-  if (!spoken) throw new Error('outloud: nothing to say.')
+  if (!spoken) throw new Error('sayeth: nothing to say.')
   return { text: spoken, backend: cfg.backend, ...(await backend.speak(spoken, cfg)) }
 }

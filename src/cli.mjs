@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// outloud — spoken output for coding agents.
+// sayeth — spoken output for coding agents.
 //
-//   outloud "Deploy verified. All routes healthy."
-//   echo "..." | outloud
-//   outloud --voice "Ava (Premium)" --rate 200 "faster, better voice"
-//   outloud --backend elevenlabs "use the good voice just this once"
-//   outloud --list                 # voices available on the current backend
-//   outloud --dry "text"           # print what WOULD be spoken, say nothing
-//   outloud config show
+//   sayeth "Deploy verified. All routes healthy."
+//   echo "..." | sayeth
+//   sayeth --voice "Ava (Premium)" --rate 200 "faster, better voice"
+//   sayeth --backend elevenlabs "use the good voice just this once"
+//   sayeth --list                 # voices available on the current backend
+//   sayeth --dry "text"           # print what WOULD be spoken, say nothing
+//   sayeth config show
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -17,12 +17,12 @@ import { loadConfig, readConfigFile, writeConfigFile, configPath, SETTABLE, getP
 import { getBackend, BACKEND_NAMES } from './backends/index.mjs'
 import { trimToSpoken } from './text.mjs'
 
-const HELP = `outloud — spoken output for coding agents
+const HELP = `sayeth — spoken output for coding agents
 
 USAGE
-  outloud [options] <text>
-  <text> | outloud [options]
-  outloud config <show|path|get|set|unset> [key] [value]
+  sayeth [options] <text>
+  <text> | sayeth [options]
+  sayeth config <show|path|get|set|unset> [key] [value]
 
 OPTIONS
   -b, --backend <name>   ${BACKEND_NAMES.join(' | ')}   (default: say)
@@ -37,21 +37,21 @@ OPTIONS
   --                     everything after this is text, not flags
 
 CONFIG
-  ~/.config/outloud/config.json    (override with XDG_CONFIG_HOME)
-  Env: OUTLOUD_BACKEND, OUTLOUD_VOICE, OUTLOUD_RATE, OUTLOUD_MAX_CHARS,
+  ~/.config/sayeth/config.json    (override with XDG_CONFIG_HOME)
+  Env: SAYETH_BACKEND, SAYETH_VOICE, SAYETH_RATE, SAYETH_MAX_CHARS,
        ELEVENLABS_API_KEY
   Precedence: flags > env > config file > defaults
 
-  outloud config set backend elevenlabs      # switch the default backend
-  outloud config set say.voice "Ava (Premium)"
-  outloud config set elevenlabs.apiKey sk-...
+  sayeth config set backend elevenlabs      # switch the default backend
+  sayeth config set say.voice "Ava (Premium)"
+  sayeth config set elevenlabs.apiKey sk-...
 
 VOICE QUALITY (say backend)
   macOS ships base voices, which sound robotic. Enhanced and Premium voices are
   a FREE download and sound dramatically better:
     System Settings > Accessibility > Spoken Content > System Voice >
     Manage Voices
-  outloud auto-picks the best installed English voice, so a later download is
+  sayeth auto-picks the best installed English voice, so a later download is
   used with no config change.`
 
 function fail(msg, code = 1) {
@@ -66,7 +66,7 @@ function parseArgs(argv) {
 
   const num = (raw, name) => {
     const n = Number(raw)
-    if (!raw || Number.isNaN(n)) fail(`outloud: ${name} expects a number, got "${raw ?? ''}"`)
+    if (!raw || Number.isNaN(n)) fail(`sayeth: ${name} expects a number, got "${raw ?? ''}"`)
     return n
   }
 
@@ -88,7 +88,7 @@ function parseArgs(argv) {
         i = argv.length
         break
       default:
-        if (a.startsWith('-') && a !== '-') fail(`outloud: unknown option "${a}"\n\n${HELP}`)
+        if (a.startsWith('-') && a !== '-') fail(`sayeth: unknown option "${a}"\n\n${HELP}`)
         positional.push(a)
         sawPositional = true
     }
@@ -129,19 +129,19 @@ async function runConfig(args) {
       return
     }
     case 'get': {
-      if (!key) fail('outloud: config get <key>')
+      if (!key) fail('sayeth: config get <key>')
       const val = getPath(loadConfig(), key)
       process.stdout.write((val === undefined ? '' : String(val)) + '\n')
       return
     }
     case 'set': {
       const value = rest.join(' ')
-      if (!key || value === '') fail('outloud: config set <key> <value>')
+      if (!key || value === '') fail('sayeth: config set <key> <value>')
       if (!SETTABLE.has(key)) {
-        fail(`outloud: "${key}" is not a config key.\nKnown keys:\n  ${[...SETTABLE].join('\n  ')}`)
+        fail(`sayeth: "${key}" is not a config key.\nKnown keys:\n  ${[...SETTABLE].join('\n  ')}`)
       }
       if (key === 'backend' && !BACKEND_NAMES.includes(value)) {
-        fail(`outloud: unknown backend "${value}". Known: ${BACKEND_NAMES.join(', ')}`)
+        fail(`sayeth: unknown backend "${value}". Known: ${BACKEND_NAMES.join(', ')}`)
       }
       const file = readConfigFile(path)
       setPath(file, key, coerce(key, value))
@@ -151,7 +151,7 @@ async function runConfig(args) {
       return
     }
     case 'unset': {
-      if (!key) fail('outloud: config unset <key>')
+      if (!key) fail('sayeth: config unset <key>')
       const file = readConfigFile(path)
       setPath(file, key, undefined)
       writeConfigFile(file, path)
@@ -159,7 +159,7 @@ async function runConfig(args) {
       return
     }
     default:
-      fail('outloud: config <show|path|get|set|unset>')
+      fail('sayeth: config <show|path|get|set|unset>')
   }
 }
 
@@ -199,7 +199,7 @@ async function main() {
             'They are a FREE download and sound dramatically better:\n' +
             '  System Settings > Accessibility > Spoken Content >\n' +
             '  System Voice > Manage Voices\n' +
-            'outloud will pick one up automatically once installed.\n',
+            'sayeth will pick one up automatically once installed.\n',
         )
       }
     } else {
@@ -210,13 +210,13 @@ async function main() {
 
   // Args and stdin are mutually exclusive, decided by whether a positional was
   // PASSED — not by whether the result is empty. Testing emptiness meant
-  // `outloud ""` fell through to stdin and blocked forever on an open pipe.
+  // `sayeth ""` fell through to stdin and blocked forever on an open pipe.
   let raw = ''
   if (sawPositional) raw = positional.join(' ')
   else if (!process.stdin.isTTY) raw = await readStdin()
 
   const text = trimToSpoken(raw, cfg.maxChars)
-  if (!text) fail('outloud: nothing to say.')
+  if (!text) fail('sayeth: nothing to say.')
 
   if (flags.dry) {
     const d = await backend.describe(cfg)

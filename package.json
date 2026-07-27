@@ -1,10 +1,10 @@
 {
-  "name": "outloud",
+  "name": "sayeth",
   "version": "0.1.0",
   "description": "Spoken output for coding agents. macOS `say` by default (free, local, offline), ElevenLabs when you want the good voice.",
   "type": "module",
   "bin": {
-    "outloud": "./src/cli.mjs"
+    "sayeth": "./src/cli.mjs"
   },
   "exports": {
     ".": "./src/index.mjs"

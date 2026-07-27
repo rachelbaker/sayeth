@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { loadConfig, writeConfigFile, readConfigFile, coerce, DEFAULTS } from '../src/config.mjs'
 
 function withFile(contents) {
-  const dir = mkdtempSync(join(tmpdir(), 'outloud-test-'))
+  const dir = mkdtempSync(join(tmpdir(), 'sayeth-test-'))
   const path = join(dir, 'config.json')
   if (contents !== undefined) writeFileSync(path, JSON.stringify(contents))
   return path
@@ -30,7 +30,7 @@ test('config file overrides defaults, and merges deeply', () => {
 
 test('env overrides the config file', () => {
   const path = withFile({ backend: 'say', say: { rate: 220 } })
-  const cfg = loadConfig({ env: { OUTLOUD_BACKEND: 'elevenlabs', OUTLOUD_RATE: '150' }, path })
+  const cfg = loadConfig({ env: { SAYETH_BACKEND: 'elevenlabs', SAYETH_RATE: '150' }, path })
   assert.equal(cfg.backend, 'elevenlabs')
   assert.equal(cfg.say.rate, 150)
 })
@@ -38,7 +38,7 @@ test('env overrides the config file', () => {
 test('flags override env', () => {
   const path = withFile({ backend: 'say' })
   const cfg = loadConfig({
-    env: { OUTLOUD_BACKEND: 'elevenlabs', OUTLOUD_VOICE: 'Fred' },
+    env: { SAYETH_BACKEND: 'elevenlabs', SAYETH_VOICE: 'Fred' },
     flags: { backend: 'say', voice: 'Kathy' },
     path,
   })
@@ -53,7 +53,7 @@ test('ELEVENLABS_API_KEY is picked up from the environment', () => {
 
 test('empty env vars do not clobber config-file values', () => {
   const path = withFile({ say: { voice: 'Samantha' } })
-  const cfg = loadConfig({ env: { OUTLOUD_VOICE: '', OUTLOUD_RATE: '' }, path })
+  const cfg = loadConfig({ env: { SAYETH_VOICE: '', SAYETH_RATE: '' }, path })
   assert.equal(cfg.say.voice, 'Samantha')
   assert.equal(cfg.say.rate, 180)
 })
@@ -72,7 +72,7 @@ test('the config file is written 0600 because it can hold an API key', () => {
 })
 
 test('malformed JSON fails loudly rather than silently resetting', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'outloud-test-'))
+  const dir = mkdtempSync(join(tmpdir(), 'sayeth-test-'))
   const path = join(dir, 'config.json')
   writeFileSync(path, '{ not json')
   assert.throws(() => readConfigFile(path), /not valid JSON/)

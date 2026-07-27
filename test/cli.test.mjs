@@ -19,7 +19,7 @@ Anna                de_DE    # Hallo!`
 // A fake `say`: prints $FIXTURE for -v '?', and records how it was invoked to
 // $SAY_LOG. Real `say` writes nothing to stdout, so the log is the only honest
 // way to assert on the arguments it received.
-const SHIM = mkdtempSync(join(tmpdir(), 'outloud-shim-'))
+const SHIM = mkdtempSync(join(tmpdir(), 'sayeth-shim-'))
 writeFileSync(
   join(SHIM, 'say'),
   `#!/usr/bin/env bash
@@ -31,7 +31,7 @@ exit 0
 )
 chmodSync(join(SHIM, 'say'), 0o755)
 
-const CONFIG_HOME = mkdtempSync(join(tmpdir(), 'outloud-cfg-'))
+const CONFIG_HOME = mkdtempSync(join(tmpdir(), 'sayeth-cfg-'))
 let logSeq = 0
 
 function run(args, { fixture = FIXTURE, stdin, env = {} } = {}) {
@@ -47,8 +47,8 @@ function run(args, { fixture = FIXTURE, stdin, env = {} } = {}) {
           XDG_CONFIG_HOME: CONFIG_HOME,
           FIXTURE: fixture,
           SAY_LOG: sayLog,
-          OUTLOUD_BACKEND: '',
-          OUTLOUD_VOICE: '',
+          SAYETH_BACKEND: '',
+          SAYETH_VOICE: '',
           ...env,
         },
       },

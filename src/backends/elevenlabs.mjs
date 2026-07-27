@@ -18,9 +18,9 @@ const API = 'https://api.elevenlabs.io/v1'
 class MissingKeyError extends Error {
   constructor() {
     super(
-      'outloud: no ElevenLabs API key.\n' +
+      'sayeth: no ElevenLabs API key.\n' +
         '  Set it in the environment (preferred):  export ELEVENLABS_API_KEY=...\n' +
-        '  Or store it:                            outloud config set elevenlabs.apiKey ...',
+        '  Or store it:                            sayeth config set elevenlabs.apiKey ...',
     )
     this.name = 'MissingKeyError'
   }
@@ -70,7 +70,7 @@ async function assertOk(res) {
       : res.status === 429
         ? ' — rate limited or out of credits'
         : ''
-  throw new Error(`outloud: ElevenLabs ${res.status}${hint}. ${detail}`.trim())
+  throw new Error(`sayeth: ElevenLabs ${res.status}${hint}. ${detail}`.trim())
 }
 
 export async function listVoices(cfg, { fetchImpl = fetch } = {}) {
@@ -104,7 +104,7 @@ function playFile(file) {
     const tryPlayer = (i) => {
       if (i >= PLAYERS.length) {
         return reject(
-          new Error('outloud: no audio player found (tried afplay, mpv, ffplay, mpg123).'),
+          new Error('sayeth: no audio player found (tried afplay, mpv, ffplay, mpg123).'),
         )
       }
       const [cmd, argsFor] = PLAYERS[i]
@@ -121,7 +121,7 @@ export async function speak(text, cfg, { fetchImpl = fetch } = {}) {
   const res = await fetchImpl(url, init)
   await assertOk(res)
 
-  const file = join(tmpdir(), `outloud-${process.pid}-${Date.now()}.mp3`)
+  const file = join(tmpdir(), `sayeth-${process.pid}-${Date.now()}.mp3`)
   await writeFile(file, Buffer.from(await res.arrayBuffer()))
   try {
     await playFile(file)

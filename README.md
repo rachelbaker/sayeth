@@ -1,13 +1,13 @@
-# outloud
+# sayeth
 
 **Spoken output for coding agents.** Free and local by default, good voice on demand.
 
 Long agent sessions are easier to follow when the agent tells you what happened instead of
-making you read another wall of terminal text. `outloud` is the one command any agent can
+making you read another wall of terminal text. `sayeth` is the one command any agent can
 call to do that — Claude Code, Codex, Cursor, a shell script, a git hook, whatever.
 
 ```bash
-npx outloud "Deploy verified. All routes healthy, nothing in the logs."
+npx sayeth "Deploy verified. All routes healthy, nothing in the logs."
 ```
 
 - **Free by default.** Uses macOS `say` — local, offline, no account, no API key, no per-character billing.
@@ -21,21 +21,21 @@ npx outloud "Deploy verified. All routes healthy, nothing in the logs."
 ## Install
 
 ```bash
-npm install -g outloud
+npm install -g sayeth
 ```
 
-Or don't install it at all — `npx outloud "..."` works fine, and that's usually the easiest
+Or don't install it at all — `npx sayeth "..."` works fine, and that's usually the easiest
 thing to put in an agent's instructions.
 
 ## Use
 
 ```bash
-outloud "Tests pass. Forty-two of them, in nine seconds."
-echo "build finished" | outloud
+sayeth "Tests pass. Forty-two of them, in nine seconds."
+echo "build finished" | sayeth
 
-outloud --dry "what would you say?"     # print it, don't speak it
-outloud --list                          # what voices you have
-outloud --check                         # is the current backend usable?
+sayeth --dry "what would you say?"     # print it, don't speak it
+sayeth --list                          # what voices you have
+sayeth --check                         # is the current backend usable?
 ```
 
 | Option | |
@@ -59,25 +59,25 @@ free download and sound dramatically better:
 > System Settings → Accessibility → Spoken Content → System Voice → **Manage Voices**
 > → expand English → pick any voice marked *Enhanced* or *Premium* → download
 
-`outloud` picks the best installed voice automatically, so once it's downloaded there is
-nothing to configure. Run `outloud --list` to confirm it was detected.
+`sayeth` picks the best installed voice automatically, so once it's downloaded there is
+nothing to configure. Run `sayeth --list` to confirm it was detected.
 
 ## Configuration
 
 ```bash
-outloud config show                                  # effective config (API key redacted)
-outloud config path                                  # where the file lives
-outloud config set say.voice "Ava (Premium)"         # pin a voice
-outloud config set say.rate 200                      # talk faster
-outloud config set maxChars 250                      # shorter summaries
+sayeth config show                                  # effective config (API key redacted)
+sayeth config path                                  # where the file lives
+sayeth config set say.voice "Ava (Premium)"         # pin a voice
+sayeth config set say.rate 200                      # talk faster
+sayeth config set maxChars 250                      # shorter summaries
 ```
 
-Config lives at `~/.config/outloud/config.json` (respects `XDG_CONFIG_HOME`) and is written
+Config lives at `~/.config/sayeth/config.json` (respects `XDG_CONFIG_HOME`) and is written
 `0600`, because it can hold an API key.
 
 **Precedence, highest first:** CLI flags → environment → config file → defaults.
 
-Environment: `OUTLOUD_BACKEND`, `OUTLOUD_VOICE`, `OUTLOUD_RATE`, `OUTLOUD_MAX_CHARS`,
+Environment: `SAYETH_BACKEND`, `SAYETH_VOICE`, `SAYETH_RATE`, `SAYETH_MAX_CHARS`,
 `ELEVENLABS_API_KEY`.
 
 ## Using ElevenLabs instead
@@ -87,27 +87,27 @@ your account per character, so it's opt-in.
 
 ```bash
 export ELEVENLABS_API_KEY=...          # preferred: keep the key out of files
-outloud --backend elevenlabs "just this once, with the good voice"
+sayeth --backend elevenlabs "just this once, with the good voice"
 
 # or make it the default
-outloud config set backend elevenlabs
-outloud --list                         # your account's voices, with ids
-outloud config set elevenlabs.voiceId <id>
+sayeth config set backend elevenlabs
+sayeth --list                         # your account's voices, with ids
+sayeth config set elevenlabs.voiceId <id>
 ```
 
 To store the key on disk instead of the environment:
 
 ```bash
-outloud config set elevenlabs.apiKey sk-...
+sayeth config set elevenlabs.apiKey sk-...
 ```
 
 Defaults to `eleven_flash_v2_5`, roughly half the per-character cost of the full model.
-Switch with `outloud config set elevenlabs.modelId eleven_multilingual_v2`.
+Switch with `sayeth config set elevenlabs.modelId eleven_multilingual_v2`.
 
 Going back to free is one command:
 
 ```bash
-outloud config set backend say
+sayeth config set backend say
 ```
 
 ## Wiring it into an agent
@@ -116,7 +116,7 @@ Any agent that can run a shell command can use this. Add something like this to 
 instructions file — `CLAUDE.md`, `AGENTS.md`, `.cursorrules`:
 
 > When you finish a substantive task, speak a one-or-two-sentence summary:
-> `outloud "<summary>"`. Write the summary deliberately — never pipe a full response,
+> `sayeth "<summary>"`. Write the summary deliberately — never pipe a full response,
 > code, tables, or file listings into it. One call per turn.
 
 Two rules matter more than they look:
@@ -130,7 +130,7 @@ Two rules matter more than they look:
 ## Programmatic use
 
 ```js
-import { speak } from 'outloud'
+import { speak } from 'sayeth'
 
 await speak('Migration finished. Fourteen tables, no errors.')
 await speak('Using the good voice.', { flags: { backend: 'elevenlabs' } })

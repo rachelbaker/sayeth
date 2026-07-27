@@ -1,6 +1,6 @@
 // Config precedence, highest first: CLI flags > env vars > config file > defaults.
 //
-// The file lives at $XDG_CONFIG_HOME/outloud/config.json (default ~/.config).
+// The file lives at $XDG_CONFIG_HOME/sayeth/config.json (default ~/.config).
 // An API key may live there, so it is written 0600 — but the env var is the
 // better home for it and always wins.
 
@@ -38,7 +38,7 @@ export const SETTABLE = new Set([
 
 export function configPath() {
   const base = process.env.XDG_CONFIG_HOME || join(homedir(), '.config')
-  return join(base, 'outloud', 'config.json')
+  return join(base, 'sayeth', 'config.json')
 }
 
 function isPlainObject(v) {
@@ -59,7 +59,7 @@ export function readConfigFile(path = configPath()) {
   try {
     return JSON.parse(readFileSync(path, 'utf8'))
   } catch (err) {
-    throw new Error(`outloud: ${path} is not valid JSON (${err.message})`)
+    throw new Error(`sayeth: ${path} is not valid JSON (${err.message})`)
   }
 }
 
@@ -71,18 +71,18 @@ export function writeConfigFile(cfg, path = configPath()) {
 }
 
 function fromEnv(env) {
-  // An exported-but-empty var (`export OUTLOUD_BACKEND=` in a shell profile) is
+  // An exported-but-empty var (`export SAYETH_BACKEND=` in a shell profile) is
   // unset, not a value — otherwise it clobbers the config file with "".
   const str = (v) => (v === undefined || v === '' ? undefined : v)
   const num = (v) => (str(v) === undefined || Number.isNaN(Number(v)) ? undefined : Number(v))
   return prune({
-    backend: str(env.OUTLOUD_BACKEND),
-    maxChars: num(env.OUTLOUD_MAX_CHARS),
-    say: prune({ voice: str(env.OUTLOUD_VOICE), rate: num(env.OUTLOUD_RATE) }),
+    backend: str(env.SAYETH_BACKEND),
+    maxChars: num(env.SAYETH_MAX_CHARS),
+    say: prune({ voice: str(env.SAYETH_VOICE), rate: num(env.SAYETH_RATE) }),
     elevenlabs: prune({
-      apiKey: str(env.ELEVENLABS_API_KEY) ?? str(env.OUTLOUD_ELEVENLABS_API_KEY),
-      voiceId: str(env.OUTLOUD_ELEVENLABS_VOICE_ID),
-      modelId: str(env.OUTLOUD_ELEVENLABS_MODEL_ID),
+      apiKey: str(env.ELEVENLABS_API_KEY) ?? str(env.SAYETH_ELEVENLABS_API_KEY),
+      voiceId: str(env.SAYETH_ELEVENLABS_VOICE_ID),
+      modelId: str(env.SAYETH_ELEVENLABS_MODEL_ID),
     }),
   })
 }
@@ -133,7 +133,7 @@ export function coerce(dotted, raw) {
   if (raw === 'null') return null
   if (typeof expected === 'number') {
     const n = Number(raw)
-    if (Number.isNaN(n)) throw new Error(`outloud: ${dotted} must be a number, got "${raw}"`)
+    if (Number.isNaN(n)) throw new Error(`sayeth: ${dotted} must be a number, got "${raw}"`)
     return n
   }
   return raw
