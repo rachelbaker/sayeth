@@ -1,0 +1,35 @@
+{
+  "name": "outloud",
+  "version": "0.1.0",
+  "description": "Spoken output for coding agents. macOS `say` by default (free, local, offline), ElevenLabs when you want the good voice.",
+  "type": "module",
+  "bin": {
+    "outloud": "./src/cli.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src",
+    "adapters",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "tts",
+    "text-to-speech",
+    "say",
+    "elevenlabs",
+    "cli",
+    "claude-code",
+    "agent",
+    "accessibility"
+  ],
+  "license": "MIT",
+  "author": "Rachel Baker"
+}
