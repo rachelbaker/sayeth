@@ -34,8 +34,14 @@ Two rules:
    Never read code, tables, file dumps, or a full answer aloud.
 2. **One call per reply.** Never inside a loop, a subagent, or a background job.
 
+If the user asks for quiet, mute it for a span rather than stopping altogether:
+`sayeth mute 30m` (also `2h`, `90s`, `1h30m`), or `sayeth mute` with no end,
+and `sayeth unmute` to restore. While muted, `sayeth` is a silent no-op that
+still exits 0 — keep calling it normally, and don't substitute another audio
+tool. Timed mutes expire on their own.
+
 `sayeth --list` shows available voices; `sayeth --dry "..."` prints what would
-be spoken without speaking it.
+be spoken without speaking it; `sayeth --check` reports mute state.
 ```
 
 ## To here

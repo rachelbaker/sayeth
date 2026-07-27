@@ -18,6 +18,30 @@ const MARKER =
   process.env.SAYETH_AUTOPLAY_MARKER ||
   join(homedir(), ".claude", "sayeth-autoplay-on");
 
+// `sayeth mute` writes this file. Read it directly rather than shelling out, so
+// the hook stays dependency-free and fast. Format matches src/mute.mjs: either
+// the literal "forever" or an ISO timestamp to mute until.
+const MUTE_FILE =
+  process.env.SAYETH_MUTE_FILE ||
+  join(
+    process.env.XDG_CONFIG_HOME || join(homedir(), ".config"),
+    "sayeth",
+    "mute"
+  );
+
+function isMuted() {
+  try {
+    if (!existsSync(MUTE_FILE)) return false;
+    const raw = readFileSync(MUTE_FILE, "utf8").trim();
+    if (!raw) return false;
+    if (raw === "forever") return true;
+    const until = Date.parse(raw);
+    return !Number.isNaN(until) && until > Date.now();
+  } catch {
+    return false; // unreadable mute state must never block a turn
+  }
+}
+
 // Below this many visible characters the turn is a trivial ack — no nudge.
 const MIN_SUBSTANTIVE_CHARS = Number(process.env.SAYETH_MIN_CHARS || 120);
 
@@ -58,6 +82,9 @@ function run() {
   // caused. Always allow it through — one nudge per turn, never a loop.
   if (payload.stop_hook_active) allow();
   if (!existsSync(MARKER)) allow();
+  // Muted means muted. Nudging someone to speak while they've asked for quiet
+  // is the most annoying possible behavior.
+  if (isMuted()) allow();
 
   const transcriptPath = payload.transcript_path;
   if (!transcriptPath || !existsSync(transcriptPath)) allow();

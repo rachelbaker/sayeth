@@ -173,6 +173,48 @@ sayeth --list
 
 If anyone says this sounds robotic, they have base voices. It is always that.
 
+## Muting it for a while
+
+You're on a call, someone's asleep, you're recording. Silence it without
+uninstalling anything or editing config:
+
+```bash
+sayeth mute 30m
+```
+
+Also takes `2h`, `90s`, `1h30m`, or a bare number for minutes. To mute with no
+end time:
+
+```bash
+sayeth mute
+```
+
+Turn it back on:
+
+```bash
+sayeth unmute
+```
+
+Check where you stand:
+
+```bash
+sayeth --check
+```
+
+**While muted, speaking is a no-op that still exits 0.** Your agent calls
+`sayeth` exactly as before and carries on normally — it just doesn't make a
+sound. A mute is your choice, not a failure for the caller to report or retry,
+so nothing in your agent's output changes.
+
+**A timed mute expires on its own.** A forgotten `sayeth mute 30m` can't leave
+you permanently silent — the deadline passes and the state file deletes itself.
+Only `sayeth mute` with no duration lasts until you unmute.
+
+Everything except speaking still works while muted: `--dry`, `--list`,
+`--check`, and all `config` commands. And a duration it can't parse is refused
+outright rather than guessed at, so a typo never mutes you for the wrong length
+of time.
+
 ## Commands
 
 The full interface. Your agent only ever needs the first line; the rest is for
@@ -181,6 +223,9 @@ you, setting it up.
 ```bash
 sayeth "text to speak"           # speak it
 echo "text" | sayeth             # same, from stdin
+sayeth mute 30m                  # quiet for a while; also 2h, 90s, 1h30m
+sayeth mute                      # quiet until you say otherwise
+sayeth unmute
 ```
 
 | Option | What it does |

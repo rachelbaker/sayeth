@@ -184,3 +184,86 @@ test('--help and --version work', async () => {
   assert.match((await run(['--help'])).stdout, /spoken output for coding agents/)
   assert.match((await run(['--version'])).stdout, /^\d+\.\d+\.\d+/)
 })
+
+// --- mute -------------------------------------------------------------------
+// Own config home so a mute here can't leak into the tests above.
+const MUTE_HOME = mkdtempSync(join(tmpdir(), 'sayeth-mutecfg-'))
+const muted = (args, opts = {}) =>
+  run(args, { ...opts, env: { XDG_CONFIG_HOME: MUTE_HOME, ...(opts.env || {}) } })
+
+test('mute silences speaking but still exits 0', async () => {
+  let r = await muted(['mute', '30m'])
+  assert.equal(r.code, 0)
+  assert.match(r.stdout, /muted for 30 minutes/)
+
+  // The whole contract: the caller sees success and simply hears nothing.
+  r = await muted(['hello there'])
+  assert.equal(r.code, 0, 'a mute is the user\'s choice, not a failure for the caller')
+  assert.equal(r.sayCalls, '', '`say` must not be invoked while muted')
+})
+
+test('unmute restores speaking', async () => {
+  let r = await muted(['unmute'])
+  assert.equal(r.code, 0)
+  assert.match(r.stdout, /unmuted/)
+
+  r = await muted(['hello there'])
+  assert.match(r.sayCalls, /SAY .* -- hello there/)
+})
+
+test('unmute when not muted says so instead of erroring', async () => {
+  const r = await muted(['unmute'])
+  assert.equal(r.code, 0)
+  assert.match(r.stdout, /was not muted/)
+})
+
+test('mute with no duration is indefinite', async () => {
+  await muted(['mute'])
+  const r = await muted(['--check'])
+  assert.match(r.stdout, /muted:\s+indefinitely/)
+  await muted(['unmute'])
+})
+
+test('--check reports remaining mute time', async () => {
+  await muted(['mute', '2h'])
+  const r = await muted(['--check'])
+  assert.match(r.stdout, /muted:\s+(1 hour 59 minutes|2 hours)/)
+  await muted(['unmute'])
+})
+
+test('--check reports no mute when there is none', async () => {
+  const r = await muted(['--check'])
+  assert.match(r.stdout, /muted:\s+no/)
+})
+
+test('--dry still works while muted, since it makes no sound', async () => {
+  await muted(['mute', '1h'])
+  const r = await muted(['--dry', 'still inspectable'])
+  assert.equal(r.code, 0)
+  assert.match(r.stdout, /still inspectable/)
+  assert.match(r.stdout, /muted=yes/)
+  await muted(['unmute'])
+})
+
+test('config and voice listing still work while muted', async () => {
+  await muted(['mute', '1h'])
+  assert.equal((await muted(['config', 'path'])).code, 0)
+  assert.equal((await muted(['--list'])).code, 0)
+  await muted(['unmute'])
+})
+
+test('an unparseable duration is rejected rather than guessed at', async () => {
+  const r = await muted(['mute', 'half an hour'])
+  assert.equal(r.code, 1)
+  assert.match(r.stderr, /couldn't understand the duration/)
+
+  // and it must not have muted anything on the way out
+  assert.match((await muted(['--check'])).stdout, /muted:\s+no/)
+})
+
+test('a mute longer than the 30 day ceiling is refused with a pointer', async () => {
+  const r = await muted(['mute', '60d'])
+  assert.equal(r.code, 1)
+  assert.match(r.stderr, /30 day maximum/)
+  assert.match(r.stderr, /mute` with no duration/)
+})

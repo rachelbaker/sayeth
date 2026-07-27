@@ -16,12 +16,17 @@ import { dirname, join } from 'node:path'
 import { loadConfig, readConfigFile, writeConfigFile, configPath, SETTABLE, getPath, setPath, coerce } from './config.mjs'
 import { getBackend, BACKEND_NAMES } from './backends/index.mjs'
 import { trimToSpoken } from './text.mjs'
+import {
+  readMute, setMute, clearMute, parseDuration, formatDuration, describeMute, MAX_MUTE_MS,
+} from './mute.mjs'
 
 const HELP = `sayeth — spoken output for coding agents
 
 USAGE
   sayeth [options] <text>
   <text> | sayeth [options]
+  sayeth mute [duration]
+  sayeth unmute
   sayeth config <show|path|get|set|unset> [key] [value]
 
 OPTIONS
@@ -31,10 +36,23 @@ OPTIONS
       --max-chars <n>    cap spoken length (default: 400, 0 disables)
       --list             list voices available on the current backend
       --dry              print what would be spoken, without speaking
-      --check            report whether the current backend is usable
+      --check            report backend readiness and mute state
   -h, --help             this
       --version          version
   --                     everything after this is text, not flags
+
+MUTE
+  Silence it for a while without uninstalling anything or editing config.
+  While muted, speaking is a no-op that still exits 0, so agents and hooks
+  calling sayeth carry on normally — they just don't make noise.
+
+  sayeth mute 30m        # also: 2h, 90s, 1h30m, or a bare number for minutes
+  sayeth mute            # indefinitely, until you unmute
+  sayeth unmute
+  sayeth --check         # is it muted, and for how much longer?
+
+  A timed mute expires on its own, so a forgotten \`mute 30m\` never silences
+  you permanently.
 
 CONFIG
   ~/.config/sayeth/config.json    (override with XDG_CONFIG_HOME)
@@ -163,10 +181,49 @@ async function runConfig(args) {
   }
 }
 
+function runMute(args) {
+  const arg = args.join(' ').trim()
+
+  if (!arg) {
+    setMute(null)
+    process.stdout.write('sayeth: muted indefinitely. Run `sayeth unmute` to turn it back on.\n')
+    return
+  }
+
+  const ms = parseDuration(arg)
+  if (ms === null) {
+    fail(
+      `sayeth: couldn't understand the duration "${arg}".\n` +
+        'Try: 30m, 2h, 90s, 1h30m, or a bare number for minutes.',
+    )
+  }
+  if (ms <= 0) fail('sayeth: mute duration must be greater than zero.')
+  if (ms > MAX_MUTE_MS) {
+    fail(
+      `sayeth: ${formatDuration(ms)} is longer than the 30 day maximum.\n` +
+        'Use `sayeth mute` with no duration to mute indefinitely.',
+    )
+  }
+
+  const { until } = setMute(ms)
+  process.stdout.write(
+    `sayeth: muted for ${formatDuration(ms)}, until ${until.toLocaleString()}.\n` +
+      'Run `sayeth unmute` to end it early.\n',
+  )
+}
+
+function runUnmute() {
+  const state = readMute()
+  clearMute()
+  process.stdout.write(state.muted ? 'sayeth: unmuted.\n' : 'sayeth: was not muted.\n')
+}
+
 async function main() {
   const argv = process.argv.slice(2)
 
   if (argv[0] === 'config') return runConfig(argv.slice(1))
+  if (argv[0] === 'mute') return runMute(argv.slice(1))
+  if (argv[0] === 'unmute') return runUnmute()
 
   const { flags, positional, sawPositional } = parseArgs(argv)
 
@@ -179,6 +236,7 @@ async function main() {
   if (flags.check) {
     const { ok, reason } = await backend.check(cfg)
     process.stdout.write(`${cfg.backend}: ${ok ? 'ready' : 'NOT ready'}\n`)
+    process.stdout.write(`muted:  ${describeMute(readMute())}\n`)
     if (!ok) process.stdout.write(reason + '\n')
     process.exit(ok ? 0 : 1)
   }
@@ -221,7 +279,27 @@ async function main() {
   if (flags.dry) {
     const d = await backend.describe(cfg)
     const meta = Object.entries(d).map(([k, v]) => `${k}=${v}`).join(' ')
-    process.stdout.write(`backend=${cfg.backend} ${meta} chars=${text.length}\n${text}\n`)
+    const mute = readMute()
+    const muted = mute.muted ? ' muted=yes' : ''
+    process.stdout.write(
+      `backend=${cfg.backend} ${meta} chars=${text.length}${muted}\n${text}\n`,
+    )
+    return
+  }
+
+  // Muted: do nothing, but exit 0. Agents and hooks calling sayeth must carry on
+  // normally — a mute is the user's choice, not a failure for the caller to
+  // report or retry. The note goes to stderr, and only when someone is actually
+  // watching, so it never pollutes a pipeline or a hook's captured output.
+  const mute = readMute()
+  if (mute.muted) {
+    if (process.stderr.isTTY) {
+      process.stderr.write(
+        mute.forever
+          ? 'sayeth: muted — run `sayeth unmute` to turn it back on.\n'
+          : `sayeth: muted for another ${formatDuration(mute.remainingMs)} — run \`sayeth unmute\` to end it early.\n`,
+      )
+    }
     return
   }
 

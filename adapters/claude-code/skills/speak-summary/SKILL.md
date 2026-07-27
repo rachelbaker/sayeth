@@ -23,6 +23,25 @@ If `$ARGUMENTS` is non-empty, speak that. Otherwise write a summary of the work 
 
 2. **One call per turn.** Never inside a loop, a subagent, or a background job. Parallel agents talking over each other is genuinely unpleasant, and it is the fastest way to make someone turn this off for good.
 
+## Muting
+
+If the user asks for quiet — they're on a call, in a meeting, someone's asleep —
+mute it for a duration rather than turning autoplay off entirely:
+
+```bash
+sayeth mute 30m     # also 2h, 90s, 1h30m, or a bare number for minutes
+sayeth mute         # no end time
+sayeth unmute
+```
+
+While muted, `sayeth` is a silent no-op that still exits 0, and the Stop hook
+stops nudging. **Keep calling `sayeth` normally while muted** — don't work around
+it, don't switch to another audio tool, and don't ask whether to speak. A timed
+mute expires by itself, so nothing needs remembering.
+
+Prefer a timed mute when the user names a span ("for the next hour", "until my
+meeting's done"). Use the open-ended form only when they give no end.
+
 ## Autoplay
 
 Speaking at the end of every substantive turn is armed by a marker file, so it can be toggled without editing config:
