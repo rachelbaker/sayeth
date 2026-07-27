@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "sayeth",
+  "displayName": "Sayeth",
+  "description": "Speak a short summary aloud at the end of each substantive turn, using the local macOS say voice.",
+  "version": "0.1.0",
+  "author": { "name": "Rachel Baker" },
+  "homepage": "https://github.com/rachelbaker/sayeth",
+  "repository": "https://github.com/rachelbaker/sayeth",
+  "license": "MIT",
+  "keywords": ["tts", "text-to-speech", "accessibility", "say", "voice"],
+  "defaultEnabled": false
+}

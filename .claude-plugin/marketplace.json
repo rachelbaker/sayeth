@@ -1,0 +1,11 @@
+{
+  "name": "sayeth",
+  "description": "Spoken output for coding agents.",
+  "plugins": [
+    {
+      "name": "sayeth",
+      "description": "Speak a short summary aloud at the end of each substantive turn, using the local macOS say voice.",
+      "source": "./adapters/claude-code"
+    }
+  ]
+}

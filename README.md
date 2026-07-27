@@ -119,6 +119,21 @@ instructions file — `CLAUDE.md`, `AGENTS.md`, `.cursorrules`:
 > `sayeth "<summary>"`. Write the summary deliberately — never pipe a full response,
 > code, tables, or file listings into it. One call per turn.
 
+That sentence is the entire integration. For convenience there are ready-made adapters
+in [`adapters/`](adapters/):
+
+- **[Claude Code plugin](adapters/claude-code/)** — a Stop hook that nudges once if a
+  substantive turn ends silent, plus a skill documenting the rules:
+
+  ```bash
+  claude plugin marketplace add rachelbaker/sayeth
+  claude plugin install sayeth
+  touch ~/.claude/sayeth-autoplay-on
+  ```
+
+- **[AGENTS.md snippet](adapters/agents-md/)** — a paste-in block for Codex, Cursor,
+  Windsurf, Aider, and Zed.
+
 Two rules matter more than they look:
 
 1. **Speak a summary, not the response.** The 400-character cap is a backstop, not a
