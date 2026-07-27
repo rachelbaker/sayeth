@@ -12,6 +12,7 @@
   "files": [
     "src",
     "adapters",
+    "assets",
     "README.md"
   ],
   "scripts": {
@@ -19,6 +20,14 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rachelbaker/sayeth.git"
+  },
+  "homepage": "https://github.com/rachelbaker/sayeth#readme",
+  "bugs": {
+    "url": "https://github.com/rachelbaker/sayeth/issues"
   },
   "keywords": [
     "tts",
