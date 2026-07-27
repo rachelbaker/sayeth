@@ -27,10 +27,12 @@ It also accepts stdin: `echo "..." | sayeth`.
 
 Two rules:
 
-1. **Speak a summary, not the response.** It caps at 400 characters, but that
-   cap is a backstop, not a strategy. Write the spoken line deliberately.
+1. **Speak a summary, not the response.** `sayeth` speaks exactly what you hand
+   it — it is a voice, not a summarizer. It caps at 400 characters, keeping the
+   FIRST 400, so piping a full response in means the user hears your opening
+   preamble and never hears the result. Write the spoken line deliberately.
    Never read code, tables, file dumps, or a full answer aloud.
-2. **One call per turn.** Never inside a loop, a subagent, or a background job.
+2. **One call per reply.** Never inside a loop, a subagent, or a background job.
 
 `sayeth --list` shows available voices; `sayeth --dry "..."` prints what would
 be spoken without speaking it.

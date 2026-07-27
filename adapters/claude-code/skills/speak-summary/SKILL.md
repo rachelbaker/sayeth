@@ -19,7 +19,7 @@ If `$ARGUMENTS` is non-empty, speak that. Otherwise write a summary of the work 
 
 ## The two rules that matter
 
-1. **Speak a summary, not the response.** `sayeth` caps at 400 characters and trims at a sentence boundary, but that cap is a backstop, not a strategy. Write the spoken line deliberately. "Deploy verified, all routes healthy" is useful; the first 400 characters of a diff is noise. Never read code, tables, file dumps, or a full answer aloud.
+1. **Speak a summary, not the response.** `sayeth` speaks exactly what you hand it — it is a voice, not a summarizer, and it never sees your output. It caps at 400 characters, but it keeps the **first** 400, trimmed to a sentence boundary. So piping a full response in means the user hears your opening preamble and never hears the result. Write the spoken line deliberately: "Deploy verified, all routes healthy" is useful. Never read code, tables, file dumps, or a full answer aloud.
 
 2. **One call per turn.** Never inside a loop, a subagent, or a background job. Parallel agents talking over each other is genuinely unpleasant, and it is the fastest way to make someone turn this off for good.
 

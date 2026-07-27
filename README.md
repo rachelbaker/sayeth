@@ -14,15 +14,20 @@
 ---
 
 Your agent works for forty seconds and writes you nine hundred words about it. You
-read the last line.
+skim for the one sentence that matters.
 
-`sayeth` is a command your agent calls when it finishes something:
+`sayeth` gives your agent a voice for that sentence:
 
 ```bash
 sayeth "Deploy verified. All routes healthy, nothing in the logs."
 ```
 
-You hear one sentence. You don't read anything. That's the whole product.
+You hear it and keep doing whatever you were doing. That's the whole product.
+
+**`sayeth` speaks exactly what you hand it.** It is a voice, not a summarizer — it
+never sees your agent's output and has no idea what happened. Your agent writes
+that sentence on purpose and passes it in, which is why most of this README is
+about teaching your agent to write a good one.
 
 It speaks through the macOS `say` voice already on your Mac — no account, no API
 key, no per-token billing, nothing to sign up for. There's an optional ElevenLabs
@@ -128,9 +133,21 @@ wrong thing is worse than silence.
 | a list of changed files | "Migration done. Fourteen tables, no errors." |
 | "I have completed the task you requested and…" | "Done. Two files changed." |
 
-`sayeth` caps at 400 characters and cuts at a sentence boundary, but treat that
-as a seatbelt, not a plan. The first 400 characters of a diff is just noise with
-a voice.
+**Why this isn't optional.** `sayeth` caps at 400 characters — but it keeps the
+**first** 400, trimmed to a sentence boundary. It has no way to find your
+conclusion, because it never saw the thing you're concluding about.
+
+So piping a whole response in fails in the worst possible way:
+
+```bash
+echo "I will now begin working on the task you requested. First I examined
+the configuration. Then I updated the handler. [...] The deploy is verified
+and all routes are healthy." | sayeth
+```
+
+You hear *"I will now begin working on the task you requested. First I examined
+the configuration…"* and the deploy result — the only part you wanted — is never
+spoken at all. The cap is a seatbelt, not a summarizer.
 
 **One call per reply.** Never inside a loop, a subagent, or a background job. Ten
 parallel agents talking over each other is the fastest way to uninstall this.
