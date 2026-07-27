@@ -7,165 +7,288 @@
 <p align="center"><em>/ˈseɪ.əθ/</em></p>
 
 <p align="center">
-  <strong>Hear ye, hear ye</strong> — the build is green.<br>
-  Spoken output for coding agents. Free, local, and offline by default.
-</p>
-
-<p align="center">
-  <code>npm install -g sayeth</code>
+  <strong>Give your coding agent a voice.</strong><br>
+  It says what it did, out loud, so you can look away from the terminal.
 </p>
 
 ---
 
-Your agent just spent forty seconds working and wrote you nine hundred words about
-it. You read the last line.
+Your agent works for forty seconds and writes you nine hundred words about it. You
+read the last line.
 
-`sayeth` reads you the last line.
+`sayeth` is a command your agent calls when it finishes something:
 
 ```bash
 sayeth "Deploy verified. All routes healthy, nothing in the logs."
 ```
 
-That's it. That's the tool.
+You hear one sentence. You don't read anything. That's the whole product.
 
-## Why it's free
+It speaks through the macOS `say` voice already on your Mac — no account, no API
+key, no per-token billing, nothing to sign up for. There's an optional ElevenLabs
+backend if you want a better voice, but start free; it's usually
+[the voice download](#make-it-sound-good-free-two-minutes) you actually want, not
+a paid API.
 
-It wraps macOS `say` — the speech synthesizer already sitting on your Mac. No
-account, no API key, no per-character billing, no network. You can run it on a
-plane.
+> **You will rarely type this yourself.** Your agent does. Everything below is
+> about teaching it when to.
 
-There's an ElevenLabs backend too, for when the local voice isn't good enough.
-It's opt-in, because it costs money and the free one usually isn't the problem —
-see [Make it sound good](#make-it-sound-good-free-two-minutes), which is.
+## Set it up
 
-## Install
+**Step 1 — install the command**, so your agent has something to call:
 
 ```bash
 npm install -g sayeth
 ```
 
-Or skip installing and use `npx sayeth "..."` — often the easiest thing to put in
-an agent's instructions.
+**Step 2 — tell your agent to use it.** Pick your agent:
 
-## Use
+<details open>
+<summary><strong>Claude Code</strong> — plugin (recommended)</summary>
+
+<br>
+
+Installs a skill plus a Stop hook that nudges once if a substantive turn ends
+without speaking, so it doesn't quietly stop happening:
 
 ```bash
-sayeth "Tests pass. Forty-two of them, in nine seconds."
-echo "build finished" | sayeth
-
-sayeth --dry "what would you say?"     # print it, don't speak it
-sayeth --list                          # what voices you have
-sayeth --check                         # is the current backend usable?
+claude plugin marketplace add rachelbaker/sayeth
 ```
 
-| Option | |
+```bash
+claude plugin install sayeth
+```
+
+```bash
+touch ~/.claude/sayeth-autoplay-on
+```
+
+That last file is the on-switch. `rm` it to go quiet; `touch` it again to
+re-arm. See [`adapters/claude-code/`](adapters/claude-code/) for the details.
+
+</details>
+
+<details>
+<summary><strong>Claude Code</strong> — manual, no plugin</summary>
+
+<br>
+
+Add to `~/.claude/CLAUDE.md` (every project) or a project's `CLAUDE.md`:
+
+```markdown
+## Spoken output
+
+When you finish a substantive task, speak a one-or-two-sentence summary:
+
+    sayeth "Deploy verified. All routes healthy."
+
+Write the summary deliberately — never pipe a full response, code, tables, or
+file listings into it. One call per reply.
+```
+
+</details>
+
+<details>
+<summary><strong>Codex, Cursor, Windsurf, Aider, Zed</strong></summary>
+
+<br>
+
+Paste the same block into `AGENTS.md`, `.cursorrules`, or whatever instructions
+file your agent reads. Full snippet with variants:
+[`adapters/agents-md/`](adapters/agents-md/).
+
+</details>
+
+<details>
+<summary><strong>Anything else that can run a shell command</strong></summary>
+
+<br>
+
+There's no integration to write. Tell it the command exists:
+
+> When you finish a substantive task, run `sayeth "<one-sentence summary>"`.
+> One call per reply.
+
+That sentence is the entire product surface. Everything in
+[`adapters/`](adapters/) is just automation on top of it.
+
+</details>
+
+## Teaching it to say something worth hearing
+
+This is the part that decides whether you keep it installed. A voice reading the
+wrong thing is worse than silence.
+
+**Speak the conclusion, not the work.**
+
+| Don't say | Say |
 |---|---|
-| `-b, --backend <name>` | `say` or `elevenlabs` |
-| `-v, --voice <name>` | voice name (say) or voice id (elevenlabs) |
-| `-r, --rate <wpm>` | speech rate for `say` (default 180) |
-| `--max-chars <n>` | length cap (default 400; `0` disables) |
-| `--dry` | print what would be spoken |
-| `--list` | list available voices |
-| `--check` | report whether the backend is ready |
-| `--` | everything after this is text, not flags |
+| the full test output | "Tests pass. Forty-two of them, in nine seconds." |
+| the stack trace | "Build failed in the auth module — missing env var." |
+| a list of changed files | "Migration done. Fourteen tables, no errors." |
+| "I have completed the task you requested and…" | "Done. Two files changed." |
+
+`sayeth` caps at 400 characters and cuts at a sentence boundary, but treat that
+as a seatbelt, not a plan. The first 400 characters of a diff is just noise with
+a voice.
+
+**One call per reply.** Never inside a loop, a subagent, or a background job. Ten
+parallel agents talking over each other is the fastest way to uninstall this.
 
 ## Make it sound good (free, two minutes)
 
-**Do this first.** It is the single highest-impact thing available, and it costs
-nothing.
+**Do this before anything else.** It costs nothing and it's the difference
+between "neat" and "I turned it off."
 
-macOS ships **base** voices. They sound like a 2009 GPS unit. **Enhanced** and
-**Premium** voices are a free download and sound dramatically better:
+macOS ships **base** voices. They sound like a 2009 GPS. **Enhanced** and
+**Premium** voices are a free download:
 
 > System Settings → Accessibility → Spoken Content → System Voice →
 > **Manage Voices** → expand English → pick anything marked *Enhanced* or
 > *Premium* → download
 
-`sayeth` resolves the best installed voice at call time — Premium, then Enhanced,
-then Samantha — so a voice you download later is picked up with **no config
-change**. Confirm with:
+`sayeth` resolves the best installed voice at call time, so a voice you download
+later is used with **no config change**. Check what it found:
 
 ```bash
 sayeth --list
 ```
 
-If someone tells you this sounds robotic, they have base voices. It's always
-that.
+If anyone says this sounds robotic, they have base voices. It is always that.
 
-## Configure
+## Commands
+
+The full interface. Your agent only ever needs the first line; the rest is for
+you, setting it up.
 
 ```bash
-sayeth config show                                  # effective config, key redacted
-sayeth config path                                  # where the file lives
-sayeth config set say.voice "Ava (Enhanced)"        # pin a voice
-sayeth config set say.rate 200                      # talk faster
-sayeth config set maxChars 250                      # shorter summaries
+sayeth "text to speak"           # speak it
+echo "text" | sayeth             # same, from stdin
 ```
 
-Config lives at `~/.config/sayeth/config.json` (respects `XDG_CONFIG_HOME`) and is
-written `0600`, because it can hold an API key.
-
-**Precedence, highest first:** CLI flags → environment → config file → defaults.
-
-Environment: `SAYETH_BACKEND`, `SAYETH_VOICE`, `SAYETH_RATE`, `SAYETH_MAX_CHARS`,
-`ELEVENLABS_API_KEY`.
-
-## The good voice
-
-ElevenLabs sounds better and bills your account per character, which is exactly
-why it isn't the default.
+| Option | What it does |
+|---|---|
+| `-b, --backend <name>` | `say` (default) or `elevenlabs` |
+| `-v, --voice <name>` | voice name for `say`, or voice **id** for elevenlabs |
+| `-r, --rate <wpm>` | speech rate for `say`. Default `180`; under 150 sounds sedated, over 220 gets choppy |
+| `--max-chars <n>` | length cap. Default `400`; `0` disables trimming |
+| `--dry` | print what *would* be spoken, and say nothing. Use this while tuning |
+| `--list` | list available voices and show which one is selected |
+| `--check` | report whether the current backend is ready to use |
+| `-h, --help` | full help |
+| `--version` | version |
+| `--` | everything after this is text, not flags |
 
 ```bash
-export ELEVENLABS_API_KEY=...          # preferred: keep the key out of files
+sayeth config show               # effective config, with the API key redacted
+sayeth config path               # where the config file lives
+sayeth config get <key>          # read one value
+sayeth config set <key> <value>  # write one value
+sayeth config unset <key>        # back to the default
+```
+
+Settable keys: `backend`, `maxChars`, `say.voice`, `say.rate`,
+`elevenlabs.apiKey`, `elevenlabs.voiceId`, `elevenlabs.modelId`,
+`elevenlabs.stability`, `elevenlabs.similarityBoost`.
+
+## Configuration
+
+Config lives at `~/.config/sayeth/config.json` (respects `XDG_CONFIG_HOME`) and
+is written `0600`, because it can hold an API key.
+
+**Precedence, highest first:** CLI flags → environment variables → config file →
+defaults.
+
+| Environment variable | Overrides |
+|---|---|
+| `SAYETH_BACKEND` | `backend` |
+| `SAYETH_VOICE` | `say.voice` |
+| `SAYETH_RATE` | `say.rate` |
+| `SAYETH_MAX_CHARS` | `maxChars` |
+| `ELEVENLABS_API_KEY` | `elevenlabs.apiKey` |
+
+An exported-but-empty variable counts as unset, so a stray `export SAYETH_VOICE=`
+in a shell profile won't silently blank your config.
+
+## Using ElevenLabs
+
+The `say` backend is free and needs no setup. ElevenLabs sounds better, and
+bills your account per character — which is why it's opt-in. Full setup:
+
+**1. Get an API key.** Sign up at [elevenlabs.io](https://elevenlabs.io), then
+open your profile menu → **API Keys** → **Create API Key**. Copy it; the key is
+shown once. The free tier includes a monthly character allowance, so you can try
+this without a card.
+
+**2. Give the key to `sayeth`.** Either put it in your environment, which keeps
+it out of files:
+
+```bash
+export ELEVENLABS_API_KEY=sk_your_key_here
+```
+
+Or store it in the config file, which is written `0600`:
+
+```bash
+sayeth config set elevenlabs.apiKey sk_your_key_here
+```
+
+**3. Confirm it's wired up.** This makes no API call and costs nothing:
+
+```bash
+sayeth --backend elevenlabs --check
+```
+
+**4. Pick a voice.** This lists the voices on your account with their ids. It
+calls the voices endpoint, which doesn't consume character credits:
+
+```bash
+sayeth --backend elevenlabs --list
+```
+
+```bash
+sayeth config set elevenlabs.voiceId <the-id-you-want>
+```
+
+**5. Use it.** Either per-call, keeping `say` as your default:
+
+```bash
 sayeth --backend elevenlabs "just this once, with the good voice"
-
-# or make it the default
-sayeth config set backend elevenlabs
-sayeth --list                          # your account's voices, with ids
-sayeth config set elevenlabs.voiceId <id>
 ```
 
-Defaults to `eleven_flash_v2_5`, roughly half the per-character cost of the full
-model. Going back to free is one command:
+Or switch the default over entirely:
+
+```bash
+sayeth config set backend elevenlabs
+```
+
+Going back to free is one command:
 
 ```bash
 sayeth config set backend say
 ```
 
-## Wire it into your agent
+### Cost control
 
-Any agent that can run a shell command already works. Add this to its instructions
-file — `CLAUDE.md`, `AGENTS.md`, `.cursorrules`:
+Defaults to `eleven_flash_v2_5`, roughly half the per-character price of the
+full model. Switch with `sayeth config set elevenlabs.modelId eleven_multilingual_v2`.
 
-> When you finish a substantive task, speak a one-or-two-sentence summary:
-> `sayeth "<summary>"`. Write it deliberately — never pipe a full response, code,
-> or file listings into it. One call per turn.
+The 400-character cap applies here too, so a single spoken line is a predictable
+worst case. Lower it with `sayeth config set maxChars 250`.
 
-That sentence is the whole integration. The [`adapters/`](adapters/) directory
-just automates it:
+⚠️ **Don't put a metered backend in an unattended job.** If an agent speaks on a
+cron or in a scheduled task, keep it on `say` — nobody is watching the meter.
 
-- **[Claude Code plugin](adapters/claude-code/)** — a Stop hook that nudges once
-  if a substantive turn ends silent, plus a skill documenting the rules:
+### Errors you might hit
 
-  ```bash
-  claude plugin marketplace add rachelbaker/sayeth
-  claude plugin install sayeth
-  touch ~/.claude/sayeth-autoplay-on
-  ```
+| Message | Meaning |
+|---|---|
+| `no ElevenLabs API key` | Nothing in `ELEVENLABS_API_KEY` or the config file |
+| `ElevenLabs 401 — check ELEVENLABS_API_KEY` | Key is wrong, revoked, or has a typo |
+| `ElevenLabs 429 — rate limited or out of credits` | Monthly allowance exhausted, or too many calls |
+| `no audio player found` | Needs `afplay` (macOS), or `mpv`/`ffplay`/`mpg123` on Linux |
 
-- **[AGENTS.md snippet](adapters/agents-md/)** — paste-in block for Codex, Cursor,
-  Windsurf, Aider, and Zed.
-
-### Two rules that matter more than they look
-
-1. **Speak a summary, not the response.** The 400-character cap is a backstop, not
-   a strategy. "Deploy verified, all routes healthy" is useful. The first 400
-   characters of a diff is noise with a voice.
-2. **One call per turn.** Never in a loop, a subagent, or a background job. Ten
-   parallel agents talking over each other is the fastest way to make someone
-   uninstall this.
-
-## Programmatic use
+## Calling it from JavaScript
 
 ```js
 import { speak } from 'sayeth'
@@ -176,9 +299,9 @@ await speak('Using the good voice.', { flags: { backend: 'elevenlabs' } })
 
 ## Platform support
 
-The `say` backend is macOS-only — it's wrapping an Apple binary. The ElevenLabs
+The `say` backend is macOS-only — it wraps an Apple binary. The ElevenLabs
 backend runs anywhere Node does, playing through `afplay`, `mpv`, `ffplay`, or
-`mpg123`, whichever it finds first.
+`mpg123`, whichever it finds first. Node 18+, zero dependencies.
 
 ## Develop
 
@@ -186,22 +309,23 @@ backend runs anywhere Node does, playing through `afplay`, `mpv`, `ffplay`, or
 npm test
 ```
 
-54 tests, and they cost nothing to run: `say` is shimmed onto `PATH` so the suite
-is silent, and the ElevenLabs request builder is exported separately with an
-injectable `fetch`, so nothing ever hits the API. You can run the tests on a
-plane too.
+54 tests that cost nothing to run: `say` is shimmed onto `PATH` so the suite is
+silent, and the ElevenLabs request builder is exported separately with an
+injectable `fetch`, so nothing ever hits the API.
 
 <details>
-<summary>A parser bug worth knowing about, if you're wrapping <code>say</code> yourself</summary>
+<summary>A parser bug worth knowing, if you're wrapping <code>say</code> yourself</summary>
+
+<br>
 
 `say -v '?'` pads the voice-name column to 20 characters — but a name of **19 or
 more characters collapses the gap to a single space**. `Samantha (Enhanced)` is
 exactly 19.
 
-So any parser that splits on two-or-more spaces silently breaks on one of the
-most likely voices a user will install. `sayeth` anchors on the locale field at
-the end of the line instead, and handles the numeric-region locales (`ar_001`)
-while it's there.
+So any parser splitting on two-or-more spaces silently breaks on one of the most
+likely voices a user will install. `sayeth` anchors on the locale field at the
+end of the line instead, and handles numeric-region locales (`ar_001`) while
+it's there.
 
 </details>
 
