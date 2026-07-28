@@ -63,13 +63,43 @@ sayeth --check
 
 ### Step 2 — tell your agent about it
 
-**Do only one of the following**, whichever matches your agent. They're
-alternatives, not a sequence.
+From inside your project:
 
-#### Claude Code
+```bash
+sayeth init
+```
 
-Nothing to paste — the plugin carries the instructions and a Stop hook that
-nudges once if a substantive turn ends without speaking:
+That's it. There is nothing to copy. `init` works out which agent the project is
+set up for, writes the instructions into that agent's file, and tells you exactly
+which file it touched:
+
+| It finds | It writes to |
+|---|---|
+| `AGENTS.md` — Codex, Zed, and most others | `AGENTS.md` |
+| `.cursorrules` | `.cursorrules` |
+| `.windsurfrules` | `.windsurfrules` |
+| `CONVENTIONS.md` — Aider | `CONVENTIONS.md` |
+| `CLAUDE.md` | `CLAUDE.md` |
+| nothing at all | creates `AGENTS.md`, the cross-tool convention |
+
+Then restart your agent so it re-reads the file.
+
+**It's safe to re-run.** The block is fenced in `<!-- sayeth:begin -->` markers,
+so a second run updates in place rather than appending a duplicate — re-run it
+after upgrading to pick up revised instructions. Existing content in the file is
+left alone.
+
+```bash
+sayeth init --print              # see the block, write nothing
+sayeth init --agent cursor       # override the detection
+sayeth init --file ~/.claude/CLAUDE.md   # write somewhere specific
+```
+
+#### Claude Code: use the plugin instead
+
+`init` works, but the plugin is better here — it adds a Stop hook that nudges
+once if a substantive turn ends without speaking, so it can't quietly stop
+happening:
 
 ```bash
 claude plugin marketplace add rachelbaker/sayeth
@@ -86,52 +116,35 @@ touch ~/.claude/sayeth-autoplay-on
 That last file is the on-switch. `rm` it to go quiet, `touch` it again to
 re-arm. Details in [`adapters/claude-code/`](adapters/claude-code/).
 
-#### Codex, Cursor, Windsurf, Aider, Zed — and Claude Code without the plugin
+<details>
+<summary>Doing it by hand instead</summary>
 
-These have no plugin system to install into, so the integration **is** pasting a
-block of instructions. Copy the text below into whichever file your agent reads:
+<br>
 
-| Agent | File |
-|---|---|
-| Codex | `AGENTS.md` |
-| Cursor | `.cursorrules` or `AGENTS.md` |
-| Windsurf | `.windsurfrules` or `AGENTS.md` |
-| Aider | `CONVENTIONS.md` |
-| Zed | `AGENTS.md` |
-| Claude Code (manual) | `~/.claude/CLAUDE.md` for every project, or a project's own `CLAUDE.md` |
+`sayeth init --print` emits exactly this. Paste it into `AGENTS.md`,
+`.cursorrules`, `CLAUDE.md`, or whatever your agent reads:
 
 ````markdown
 ## Spoken output
 
-When you finish a substantive task, speak a one-or-two-sentence summary aloud:
+After finishing a substantive task, speak a one-or-two-sentence summary:
 
-    sayeth "Deploy verified. All routes healthy, nothing in the logs."
+    sayeth "Deploy verified. All routes healthy."
 
-It wraps the local macOS `say` voice — free, offline, no account, no billing.
-
-Two rules:
-
-1. Speak a summary, not the response. `sayeth` speaks exactly what you hand it —
-   it is a voice, not a summarizer. It caps at 400 characters, keeping the FIRST
-   400, so piping a full response in means the user hears your opening preamble
-   and never hears the result. Never read code, tables, or file dumps aloud.
-2. One call per reply. Never inside a loop, a subagent, or a background job.
-
-If the user asks for quiet: `sayeth mute 30m` (also `2h`, `90s`, `1h30m`), or
-`sayeth mute` with no end, and `sayeth unmute` to restore. While muted, `sayeth`
-is a silent no-op that still exits 0 — keep calling it normally.
+- Write that line deliberately. `sayeth` speaks exactly what you pass it — it is
+  a voice, not a summarizer, and it keeps only the FIRST 400 characters. Piping a
+  full response in means the user hears your preamble and never hears the result.
+  Never read code, tables, or file listings aloud.
+- One call per reply. Never inside a loop, a subagent, or a background job.
+- If the user wants quiet: `sayeth mute 30m` (or `sayeth mute`, `sayeth unmute`).
+  While muted it is a silent no-op that still exits 0 — keep calling it normally
+  rather than working around it.
 ````
 
-That's the whole integration. No config file, no plugin, no restart. Longer
-variants — speak-only-when-asked, speak-only-after-slow-tasks — are in
+Longer variants — speak-only-when-asked, speak-only-after-slow-tasks — are in
 [`adapters/agents-md/`](adapters/agents-md/).
 
-#### Anything else that runs shell commands
-
-One sentence is enough:
-
-> When you finish a substantive task, run `sayeth "<one-sentence summary>"`.
-> One call per reply.
+</details>
 
 ## Teaching it to say something worth hearing
 
