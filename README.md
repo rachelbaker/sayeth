@@ -11,6 +11,13 @@
   It says what it did, out loud, so you can look away from the terminal.
 </p>
 
+<p align="center">
+  <a href="https://www.npmjs.com/package/sayeth"><img src="https://img.shields.io/npm/v/sayeth?color=2B6BE4&label=npm" alt="npm version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/sayeth?color=2B6BE4" alt="MIT licence"></a>
+  <img src="https://img.shields.io/badge/dependencies-0-2B6BE4" alt="zero dependencies">
+  <img src="https://img.shields.io/badge/node-%3E%3D18-2B6BE4" alt="Node 18 or newer">
+</p>
+
 ---
 
 Your agent works for forty seconds and writes you nine hundred words about it. You
@@ -46,12 +53,6 @@ Two steps: install the command, then tell your agent about it.
 
 ```bash
 npm install -g sayeth
-```
-
-Not on npm yet — until it is, install straight from the repo:
-
-```bash
-npm install -g github:rachelbaker/sayeth
 ```
 
 Check it worked:
