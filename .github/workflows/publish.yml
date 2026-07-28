@@ -1,0 +1,76 @@
+# Publish to npm on a version tag, using npm Trusted Publishing (OIDC).
+#
+# There is deliberately no NPM_TOKEN here. GitHub mints a short-lived OIDC token
+# that npm verifies against a trusted publisher configured on the package, so
+# there is no long-lived secret to leak, rotate, or accidentally print. It also
+# sidesteps the interactive 2FA prompt that blocks `npm publish` from a script.
+#
+# ONE-TIME SETUP on npmjs.com (this workflow cannot do it for you):
+#   npmjs.com -> the sayeth package -> Settings -> Trusted Publisher -> GitHub Actions
+#     Organization or user: rachelbaker
+#     Repository:           sayeth
+#     Workflow filename:    publish.yml
+#     Environment:          (leave blank)
+#
+# To release:
+#   npm version patch     # or minor / major — commits and tags
+#   git push --follow-tags
+# The tag push triggers this. No OTP, no token.
+
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for OIDC; without it npm falls back to token auth
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest # trusted publishing requires a cloud-hosted runner
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # The npm bundled with Node is usually older than the 11.5.1 that added
+      # OIDC support, so publishing would silently fall back to looking for a
+      # token and fail.
+      - name: Use an npm new enough for OIDC
+        run: npm install -g npm@latest
+
+      # Zero dependencies, so there is nothing to install before testing.
+      - name: Test
+        run: node --test
+
+      - name: Tag must match package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG"
+            exit 1
+          fi
+          echo "Publishing $PKG"
+
+      - name: Already published?
+        id: check
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          if npm view "sayeth@$PKG" version >/dev/null 2>&1; then
+            echo "::notice::sayeth@$PKG is already on npm — nothing to do"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        if: steps.check.outputs.skip == 'false'
+        run: npm publish

@@ -1,0 +1,42 @@
+# Run the suite on every push and pull request.
+#
+# The tests shim `say` onto PATH and never touch the network, so they are silent
+# and free everywhere — including on Linux runners, where macOS `say` does not
+# exist at all. The macOS job is what exercises the real `say -v '?'` parsing
+# against an actual system voice list.
+
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node: [18, 20, 22]
+        include:
+          # package.json says engines >=18, and the say backend is macOS-only,
+          # so prove the real one still parses on a real Mac.
+          - os: macos-latest
+            node: 22
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # Zero dependencies — nothing to install.
+      - name: Test
+        run: node --test
