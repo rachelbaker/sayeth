@@ -40,21 +40,35 @@ a paid API.
 
 ## Set it up
 
-**Step 1 — install the command**, so your agent has something to call:
+Two steps: install the command, then tell your agent about it.
+
+### Step 1 — install the command
 
 ```bash
 npm install -g sayeth
 ```
 
-**Step 2 — tell your agent to use it.** Pick your agent:
+Not on npm yet — until it is, install straight from the repo:
 
-<details open>
-<summary><strong>Claude Code</strong> — plugin (recommended)</summary>
+```bash
+npm install -g github:rachelbaker/sayeth
+```
 
-<br>
+Check it worked:
 
-Installs a skill plus a Stop hook that nudges once if a substantive turn ends
-without speaking, so it doesn't quietly stop happening:
+```bash
+sayeth --check
+```
+
+### Step 2 — tell your agent about it
+
+**Do only one of the following**, whichever matches your agent. They're
+alternatives, not a sequence.
+
+#### Claude Code
+
+Nothing to paste — the plugin carries the instructions and a Stop hook that
+nudges once if a substantive turn ends without speaking:
 
 ```bash
 claude plugin marketplace add rachelbaker/sayeth
@@ -68,56 +82,55 @@ claude plugin install sayeth
 touch ~/.claude/sayeth-autoplay-on
 ```
 
-That last file is the on-switch. `rm` it to go quiet; `touch` it again to
-re-arm. See [`adapters/claude-code/`](adapters/claude-code/) for the details.
+That last file is the on-switch. `rm` it to go quiet, `touch` it again to
+re-arm. Details in [`adapters/claude-code/`](adapters/claude-code/).
 
-</details>
+#### Codex, Cursor, Windsurf, Aider, Zed — and Claude Code without the plugin
 
-<details>
-<summary><strong>Claude Code</strong> — manual, no plugin</summary>
+These have no plugin system to install into, so the integration **is** pasting a
+block of instructions. Copy the text below into whichever file your agent reads:
 
-<br>
+| Agent | File |
+|---|---|
+| Codex | `AGENTS.md` |
+| Cursor | `.cursorrules` or `AGENTS.md` |
+| Windsurf | `.windsurfrules` or `AGENTS.md` |
+| Aider | `CONVENTIONS.md` |
+| Zed | `AGENTS.md` |
+| Claude Code (manual) | `~/.claude/CLAUDE.md` for every project, or a project's own `CLAUDE.md` |
 
-Add to `~/.claude/CLAUDE.md` (every project) or a project's `CLAUDE.md`:
-
-```markdown
+````markdown
 ## Spoken output
 
-When you finish a substantive task, speak a one-or-two-sentence summary:
+When you finish a substantive task, speak a one-or-two-sentence summary aloud:
 
-    sayeth "Deploy verified. All routes healthy."
+    sayeth "Deploy verified. All routes healthy, nothing in the logs."
 
-Write the summary deliberately — never pipe a full response, code, tables, or
-file listings into it. One call per reply.
-```
+It wraps the local macOS `say` voice — free, offline, no account, no billing.
 
-</details>
+Two rules:
 
-<details>
-<summary><strong>Codex, Cursor, Windsurf, Aider, Zed</strong></summary>
+1. Speak a summary, not the response. `sayeth` speaks exactly what you hand it —
+   it is a voice, not a summarizer. It caps at 400 characters, keeping the FIRST
+   400, so piping a full response in means the user hears your opening preamble
+   and never hears the result. Never read code, tables, or file dumps aloud.
+2. One call per reply. Never inside a loop, a subagent, or a background job.
 
-<br>
+If the user asks for quiet: `sayeth mute 30m` (also `2h`, `90s`, `1h30m`), or
+`sayeth mute` with no end, and `sayeth unmute` to restore. While muted, `sayeth`
+is a silent no-op that still exits 0 — keep calling it normally.
+````
 
-Paste the same block into `AGENTS.md`, `.cursorrules`, or whatever instructions
-file your agent reads. Full snippet with variants:
+That's the whole integration. No config file, no plugin, no restart. Longer
+variants — speak-only-when-asked, speak-only-after-slow-tasks — are in
 [`adapters/agents-md/`](adapters/agents-md/).
 
-</details>
+#### Anything else that runs shell commands
 
-<details>
-<summary><strong>Anything else that can run a shell command</strong></summary>
-
-<br>
-
-There's no integration to write. Tell it the command exists:
+One sentence is enough:
 
 > When you finish a substantive task, run `sayeth "<one-sentence summary>"`.
 > One call per reply.
-
-That sentence is the entire product surface. Everything in
-[`adapters/`](adapters/) is just automation on top of it.
-
-</details>
 
 ## Teaching it to say something worth hearing
 

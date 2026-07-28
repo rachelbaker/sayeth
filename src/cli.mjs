@@ -19,15 +19,29 @@ import { trimToSpoken } from './text.mjs'
 import {
   readMute, setMute, clearMute, parseDuration, formatDuration, describeMute, MAX_MUTE_MS,
 } from './mute.mjs'
+import { runInit, block, TARGETS, TARGET_NAMES } from './init.mjs'
 
 const HELP = `sayeth — spoken output for coding agents
 
 USAGE
   sayeth [options] <text>
   <text> | sayeth [options]
+  sayeth init [--agent <name>] [--file <path>] [--print]
   sayeth mute [duration]
   sayeth unmute
   sayeth config <show|path|get|set|unset> [key] [value]
+
+SETUP
+  sayeth init            Write the agent instructions into the right file for
+                         you, so there is nothing to copy out of a README.
+                         Detects the agent from the files already in the
+                         project, and is safe to re-run: the block is fenced in
+                         markers, so a second run updates in place instead of
+                         appending a duplicate.
+
+    --agent <name>       ${TARGET_NAMES.join(', ')}
+    --file <path>        write somewhere specific, e.g. ~/.claude/CLAUDE.md
+    --print              print the block to stdout, write nothing
 
 OPTIONS
   -b, --backend <name>   ${BACKEND_NAMES.join(' | ')}   (default: say)
@@ -218,10 +232,60 @@ function runUnmute() {
   process.stdout.write(state.muted ? 'sayeth: unmuted.\n' : 'sayeth: was not muted.\n')
 }
 
+function runInitCommand(args) {
+  let target = null
+  let file = null
+  let print = false
+
+  for (let i = 0; i < args.length; i++) {
+    switch (args[i]) {
+      case '--agent': case '-a': target = args[++i]; break
+      case '--file': case '-f': file = args[++i]; break
+      case '--print': print = true; break
+      default: fail(`sayeth: unknown option "${args[i]}" for init.\nUsage: sayeth init [--agent <name>] [--file <path>] [--print]`)
+    }
+  }
+
+  if (print) return void process.stdout.write(block() + '\n')
+
+  if (target && !TARGETS[target]) {
+    fail(`sayeth: unknown agent "${target}". Known: ${TARGET_NAMES.join(', ')}`)
+  }
+  if (file && file.startsWith('~')) {
+    fail('sayeth: --file needs a real path, not ~ (your shell usually expands it; quote it and it will not).')
+  }
+
+  const { path, action, label } = runInit({ target, file })
+
+  const said = {
+    created: `created ${path}`,
+    appended: `added the ${label} instructions to ${path}`,
+    updated: `updated the instructions in ${path}`,
+    unchanged: `${path} is already up to date`,
+    'already-present': `${path} already has spoken-output instructions — left it alone`,
+  }[action]
+
+  process.stdout.write(`sayeth: ${said}\n`)
+
+  if (action === 'created' || action === 'appended' || action === 'updated') {
+    process.stdout.write(
+      '\nYour agent will speak after substantive tasks from its next session.\n' +
+        'Re-run `sayeth init` any time to pull in updated instructions.\n',
+    )
+  }
+  if (action === 'already-present') {
+    process.stdout.write(
+      'It looks hand-pasted. Delete that section and re-run init to get the\n' +
+        'marker-fenced version, which future updates can revise in place.\n',
+    )
+  }
+}
+
 async function main() {
   const argv = process.argv.slice(2)
 
   if (argv[0] === 'config') return runConfig(argv.slice(1))
+  if (argv[0] === 'init') return runInitCommand(argv.slice(1))
   if (argv[0] === 'mute') return runMute(argv.slice(1))
   if (argv[0] === 'unmute') return runUnmute()
 
