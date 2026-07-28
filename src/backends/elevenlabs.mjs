@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process'
 import { writeFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { renderPauses } from '../text.mjs'
 
 export const name = 'elevenlabs'
 export const label = 'ElevenLabs'
@@ -35,6 +36,9 @@ export function apiKey(cfg) {
 /** Built separately from the fetch so tests can assert on it without a network call. */
 export function buildSpeechRequest(text, cfg) {
   const el = cfg.elevenlabs ?? {}
+  // Pause markers become sentence breaks rather than engine-specific markup,
+  // which would risk being read out verbatim.
+  const spoken = renderPauses(text, { backend: 'elevenlabs', pauseMs: cfg.pauseMs ?? 450 })
   return {
     url: `${API}/text-to-speech/${encodeURIComponent(el.voiceId)}?output_format=mp3_44100_128`,
     init: {
@@ -45,7 +49,7 @@ export function buildSpeechRequest(text, cfg) {
         accept: 'audio/mpeg',
       },
       body: JSON.stringify({
-        text,
+        text: spoken,
         model_id: el.modelId,
         voice_settings: {
           stability: el.stability,

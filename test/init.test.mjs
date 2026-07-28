@@ -17,7 +17,7 @@ test('creates the file when nothing exists', () => {
   assert.equal(r.path, join(cwd, 'AGENTS.md'), 'AGENTS.md is the cross-tool default')
   const body = readFileSync(r.path, 'utf8')
   assert.ok(body.includes(BEGIN) && body.includes(END))
-  assert.ok(body.includes('sayeth "Deploy verified'))
+  assert.ok(body.includes('sayeth "'), 'the block must show how to call it')
 })
 
 test('appends to an existing file without destroying it', () => {
@@ -120,11 +120,25 @@ test('the block is valid markdown-ish and self-delimiting', () => {
 
 test('the instruction block stays short, since it is in context every turn', () => {
   // A guardrail, not a style rule: this text costs tokens on every single turn
-  // of every session it is installed in.
+  // of every session it is installed in. Raised from 900 to 1100 to buy the
+  // worked example — one line demonstrating the count-then-pause-then-enumerate
+  // shape teaches it far better than a paragraph describing it. Any further
+  // increase should have to justify itself the same way.
   assert.ok(
-    INSTRUCTIONS.length < 900,
+    INSTRUCTIONS.length < 1100,
     `instructions are ${INSTRUCTIONS.length} chars; keep them tight`,
   )
+})
+
+test('the block teaches the pause convention by example, not just by rule', () => {
+  assert.match(INSTRUCTIONS, /\/\//, 'must mention the marker')
+  assert.match(INSTRUCTIONS, /short spoken pause/, 'must say what it does')
+  // The example has to actually demonstrate the shape: a count, then items
+  // separated by pauses.
+  const example = INSTRUCTIONS.split('\n').find((l) => l.trim().startsWith('sayeth "'))
+  assert.ok(example, 'there should be a worked example')
+  assert.ok(example.split('//').length - 1 >= 2, 'example should show multiple pauses')
+  assert.match(example, /One,.*Two,/, 'example should show enumeration')
 })
 
 test('the block still carries the three things that actually prevent failures', () => {

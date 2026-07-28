@@ -16,6 +16,9 @@ export const DEFAULTS = {
   // enthusiasm." null means the defaults stand alone. This is the only lever
   // that changes the content of a summary; maxChars only truncates one.
   style: null,
+  // Silence inserted at each `//` marker, in milliseconds. Long enough to read
+  // as deliberate structure, short enough not to feel like a glitch.
+  pauseMs: 450,
   say: {
     voice: null, // null = auto-pick the best installed English voice
     rate: 180, // wpm; <150 sounds sedated, >220 gets choppy
@@ -33,6 +36,7 @@ export const SETTABLE = new Set([
   'backend',
   'maxChars',
   'style',
+  'pauseMs',
   'say.voice',
   'say.rate',
   'elevenlabs.apiKey',

@@ -7,6 +7,7 @@
 // change.
 
 import { spawn } from 'node:child_process'
+import { renderPauses, escapeSpeechCommands } from '../text.mjs'
 
 export const name = 'say'
 export const label = 'macOS say'
@@ -91,9 +92,17 @@ export async function check() {
 
 export async function speak(text, cfg) {
   const voice = await resolveVoice(cfg)
+
+  // Escape the caller's text FIRST, then insert our own [[slnc]] commands — the
+  // other order would escape the very commands we just added.
+  const spoken = renderPauses(escapeSpeechCommands(text), {
+    backend: 'say',
+    pauseMs: cfg.pauseMs ?? 450,
+  })
+
   const args = []
   if (voice) args.push('-v', voice)
-  args.push('-r', String(cfg.say?.rate ?? 180), '--', text)
+  args.push('-r', String(cfg.say?.rate ?? 180), '--', spoken)
   await run('say', args)
   return { voice: voice ?? '<system default>', rate: cfg.say?.rate ?? 180 }
 }

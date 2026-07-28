@@ -206,6 +206,28 @@ spoken at all. The cap is a seatbelt, not a summarizer.
 **One call per reply.** Never inside a loop, a subagent, or a background job. Ten
 parallel agents talking over each other is the fastest way to uninstall this.
 
+## Structure: pauses
+
+A listener has no headings, no bullets, no whitespace. A pause is the only
+structure available — so `//` in a spoken line becomes a short silence:
+
+```bash
+sayeth "Two things need you. // One, approve the migration. // Two, the staging key expires Friday. // Everything else passed."
+```
+
+You hear the count, a beat, each item separated by a beat, then the things that
+don't need you. The built-in instructions teach agents this shape, so you get it
+without configuring anything.
+
+Adjust the length, or set it to `0` to disable:
+
+```bash
+sayeth config set pauseMs 700
+```
+
+On the `say` backend this is real silence (`[[slnc]]`). On ElevenLabs it becomes
+a sentence break, because engine-specific markup risks being read aloud.
+
 ## Controlling brevity
 
 Two different levers, and the difference matters:

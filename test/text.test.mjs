@@ -41,3 +41,76 @@ test('empty and nullish input normalize to empty string', () => {
   assert.equal(trimToSpoken(null, 400), '')
   assert.equal(trimToSpoken(undefined, 400), '')
 })
+
+// --- pauses and speech-command safety ---------------------------------------
+
+import { renderPauses, escapeSpeechCommands, hasPause, PAUSE_MARKER } from '../src/text.mjs'
+
+test('text without a marker is returned untouched', () => {
+  assert.equal(renderPauses('Deploy verified.'), 'Deploy verified.')
+  assert.equal(hasPause('Deploy verified.'), false)
+})
+
+test('say gets real silence commands at each marker', () => {
+  const out = renderPauses('Two things need you. // One, approve it. // Two, rotate the key.', {
+    backend: 'say',
+    pauseMs: 450,
+  })
+  assert.equal(
+    out,
+    'Two things need you. [[slnc 450]] One, approve it. [[slnc 450]] Two, rotate the key.',
+  )
+})
+
+test('pause length is configurable', () => {
+  assert.match(renderPauses('a // b', { backend: 'say', pauseMs: 900 }), /\[\[slnc 900\]\]/)
+})
+
+test('other backends get sentence breaks, never engine-specific markup', () => {
+  // A literal [[slnc]] sent to ElevenLabs would be read out loud.
+  const out = renderPauses('Two things need you. // One, approve it', { backend: 'elevenlabs' })
+  assert.equal(out, 'Two things need you. One, approve it.')
+  assert.ok(!out.includes('slnc'))
+})
+
+test('sentence breaks are not doubled up', () => {
+  assert.equal(renderPauses('Done. // Ready.', { backend: 'elevenlabs' }), 'Done. Ready.')
+  assert.equal(renderPauses('Done! // Ready?', { backend: 'elevenlabs' }), 'Done! Ready?')
+})
+
+test('stray or repeated markers do not produce empty segments', () => {
+  assert.equal(renderPauses('// a // // b //', { backend: 'say', pauseMs: 100 }), 'a [[slnc 100]] b')
+  assert.equal(renderPauses('//', { backend: 'say' }), '')
+})
+
+test('whitespace around a marker is absorbed', () => {
+  assert.equal(renderPauses('a//b', { backend: 'say', pauseMs: 1 }), 'a [[slnc 1]] b')
+  assert.equal(renderPauses('a   //   b', { backend: 'say', pauseMs: 1 }), 'a [[slnc 1]] b')
+})
+
+test('double brackets in agent text are escaped, not swallowed', () => {
+  // Verified against real `say`: "the array index [[0]] bug" loses the index
+  // entirely, because [[...]] is an embedded speech command.
+  assert.equal(escapeSpeechCommands('the array index [[0]] bug'), 'the array index [ [0]] bug')
+  assert.equal(escapeSpeechCommands('no brackets here'), 'no brackets here')
+})
+
+test('escaping runs before our own commands are inserted', () => {
+  // Otherwise we would escape the [[slnc]] we just added and speak it aloud.
+  const out = renderPauses(escapeSpeechCommands('index [[0]] fixed // tests pass'), {
+    backend: 'say',
+    pauseMs: 300,
+  })
+  assert.match(out, /\[\[slnc 300\]\]/, 'our pause command must survive')
+  assert.ok(!out.includes('[[0]]'), "the caller's brackets must be defused")
+})
+
+test('the marker is the documented one', () => {
+  assert.equal(PAUSE_MARKER, '//')
+})
+
+test('pauseMs 0 disables pauses instead of emitting a zero-length command', () => {
+  assert.equal(renderPauses('a // b', { backend: 'say', pauseMs: 0 }), 'a b')
+  assert.equal(renderPauses('a // b', { backend: 'elevenlabs', pauseMs: 0 }), 'a b')
+  assert.ok(!renderPauses('a // b', { backend: 'say', pauseMs: 0 }).includes('slnc'))
+})

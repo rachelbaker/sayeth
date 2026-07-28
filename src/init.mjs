@@ -39,18 +39,18 @@ export function instructions({ maxChars = 400, style = null } = {}) {
 
 After finishing a substantive task, speak a summary aloud — ${lengthGuidance(maxChars)}:
 
-    sayeth "Deploy verified. All routes healthy."
+    sayeth "Two things need you. // One, approve the migration. // Two, the staging key expires Friday. // Everything else passed."
 
-- Write that line deliberately. \`sayeth\` speaks exactly what you pass it. It does
-  not summarize; it only truncates, keeping the FIRST ${maxChars || 400} characters. Piping a
-  full response in means the user hears your preamble and never hears the result.
-  Never read code, tables, or file listings aloud.
-- Lead with the outcome. "Deploy verified, all routes healthy" beats "I have
-  finished the task you requested and here is what I found".
+- \`//\` becomes a short spoken pause. A listener has no headings or bullets, so
+  pauses are the only structure available to you.
+- Anything the user must DO comes first: count them, then one per pause, as
+  above. What merely happened comes after. If nothing needs them, say so.
+- \`sayeth\` speaks exactly what you pass it. It does not summarize; it truncates,
+  keeping the FIRST ${maxChars || 400} characters — so pass a line you wrote, never a whole
+  response, code, tables, or file listings.
 - One call per reply. Never inside a loop, a subagent, or a background job.
 - If the user wants quiet: \`sayeth mute 30m\` (or \`sayeth mute\`, \`sayeth unmute\`).
-  While muted it is a silent no-op that still exits 0 — keep calling it normally
-  rather than working around it.${custom}`
+  While muted it is a silent no-op that still exits 0 — keep calling it normally.${custom}`
 }
 
 /** Default block, for callers that don't care about config. */
