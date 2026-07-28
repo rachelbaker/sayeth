@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/sayeth"><img src="https://img.shields.io/npm/v/sayeth?color=2B6BE4&label=npm" alt="npm version"></a>
+  <a href="https://github.com/rachelbaker/sayeth/actions/workflows/test.yml"><img src="https://github.com/rachelbaker/sayeth/actions/workflows/test.yml/badge.svg" alt="tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/npm/l/sayeth?color=2B6BE4" alt="MIT licence"></a>
   <img src="https://img.shields.io/badge/dependencies-0-2B6BE4" alt="zero dependencies">
   <img src="https://img.shields.io/badge/node-%3E%3D18-2B6BE4" alt="Node 18 or newer">
