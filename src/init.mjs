@@ -17,20 +17,44 @@ export const END = '<!-- sayeth:end -->'
 // (piping a whole response in), the second prevents the second-worst (parallel
 // agents talking over each other), the third stops an agent from working around
 // a mute it doesn't understand.
-export const INSTRUCTIONS = `## Spoken output
+//
+// The length guidance is derived from the user's configured maxChars rather than
+// hardcoded, because truncation alone cannot make a line succinct — chopping a
+// rambling sentence just yields a rambling fragment. Lowering the cap has to
+// change what the agent WRITES, not only what survives.
+export function lengthGuidance(maxChars) {
+  if (!maxChars) return 'a sentence or two'
+  if (maxChars <= 120) return `ONE short sentence, under ${maxChars} characters`
+  if (maxChars <= 250) return `one sentence, under ${maxChars} characters`
+  return `one or two sentences, under ${maxChars} characters`
+}
 
-After finishing a substantive task, speak a one-or-two-sentence summary:
+export function instructions({ maxChars = 400, style = null } = {}) {
+  // The user's own guidance goes LAST, so it wins any argument with the
+  // defaults above — it is the more specific instruction and they wrote it on
+  // purpose.
+  const custom = style ? `\n- ${String(style).trim()}` : ''
+
+  return `## Spoken output
+
+After finishing a substantive task, speak a summary aloud — ${lengthGuidance(maxChars)}:
 
     sayeth "Deploy verified. All routes healthy."
 
-- Write that line deliberately. \`sayeth\` speaks exactly what you pass it — it is
-  a voice, not a summarizer, and it keeps only the FIRST 400 characters. Piping a
+- Write that line deliberately. \`sayeth\` speaks exactly what you pass it. It does
+  not summarize; it only truncates, keeping the FIRST ${maxChars || 400} characters. Piping a
   full response in means the user hears your preamble and never hears the result.
   Never read code, tables, or file listings aloud.
+- Lead with the outcome. "Deploy verified, all routes healthy" beats "I have
+  finished the task you requested and here is what I found".
 - One call per reply. Never inside a loop, a subagent, or a background job.
 - If the user wants quiet: \`sayeth mute 30m\` (or \`sayeth mute\`, \`sayeth unmute\`).
   While muted it is a silent no-op that still exits 0 — keep calling it normally
-  rather than working around it.`
+  rather than working around it.${custom}`
+}
+
+/** Default block, for callers that don't care about config. */
+export const INSTRUCTIONS = instructions()
 
 export const TARGETS = {
   codex: { label: 'Codex', file: 'AGENTS.md' },
@@ -60,16 +84,16 @@ export function detectTarget(cwd = process.cwd()) {
   return { name: 'agents', ...TARGETS.agents, existed: false }
 }
 
-export function block(instructions = INSTRUCTIONS) {
-  return `${BEGIN}\n${instructions}\n${END}`
+export function block(text = INSTRUCTIONS) {
+  return `${BEGIN}\n${text}\n${END}`
 }
 
 /**
  * Returns the new file contents plus what happened, without touching disk —
  * so the caller can report accurately and tests don't need a filesystem.
  */
-export function applyBlock(existing, instructions = INSTRUCTIONS) {
-  const fresh = block(instructions)
+export function applyBlock(existing, text = INSTRUCTIONS) {
+  const fresh = block(text)
 
   const start = existing.indexOf(BEGIN)
   const end = existing.indexOf(END)
@@ -90,14 +114,14 @@ export function applyBlock(existing, instructions = INSTRUCTIONS) {
   return { contents: existing + sep + fresh + '\n', action: existing ? 'appended' : 'created' }
 }
 
-export function runInit({ cwd = process.cwd(), target = null, file = null } = {}) {
+export function runInit({ cwd = process.cwd(), target = null, file = null, text = null } = {}) {
   const chosen = target
     ? { name: target, ...TARGETS[target], existed: false }
     : detectTarget(cwd)
 
   const path = file ? (file.startsWith('/') ? file : join(cwd, file)) : join(cwd, chosen.file)
   const existing = existsSync(path) ? readFileSync(path, 'utf8') : ''
-  const { contents, action } = applyBlock(existing)
+  const { contents, action } = applyBlock(existing, text ?? INSTRUCTIONS)
 
   if (action !== 'unchanged' && action !== 'already-present') {
     writeFileSync(path, contents)

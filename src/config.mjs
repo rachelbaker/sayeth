@@ -11,6 +11,11 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'n
 export const DEFAULTS = {
   backend: 'say',
   maxChars: 400,
+  // Free-text guidance for WHAT the agent should say, baked into the block that
+  // `sayeth init` writes — e.g. "Always name the branch." or "Be dry, no
+  // enthusiasm." null means the defaults stand alone. This is the only lever
+  // that changes the content of a summary; maxChars only truncates one.
+  style: null,
   say: {
     voice: null, // null = auto-pick the best installed English voice
     rate: 180, // wpm; <150 sounds sedated, >220 gets choppy
@@ -27,6 +32,7 @@ export const DEFAULTS = {
 export const SETTABLE = new Set([
   'backend',
   'maxChars',
+  'style',
   'say.voice',
   'say.rate',
   'elevenlabs.apiKey',

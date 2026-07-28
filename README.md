@@ -21,27 +21,54 @@
 
 ---
 
-Your agent works for forty seconds and writes you nine hundred words about it. You
-skim for the one sentence that matters.
+Your agent finishes a long task and writes several hundred words about it. You read
+the last line, if that.
 
-`sayeth` gives your agent a voice for that sentence:
+`sayeth` lets it tell you instead:
 
 ```bash
 sayeth "Deploy verified. All routes healthy, nothing in the logs."
 ```
 
-You hear it and keep doing whatever you were doing. That's the whole product.
+### How it works
 
-**`sayeth` speaks exactly what you hand it.** It is a voice, not a summarizer — it
-never sees your agent's output and has no idea what happened. Your agent writes
-that sentence on purpose and passes it in, which is why most of this README is
-about teaching your agent to write a good one.
+Your agent composes that sentence and passes it to `sayeth` as an argument.
+`sayeth` speaks it aloud. That is the entire mechanism.
 
-It speaks through the macOS `say` voice already on your Mac — no account, no API
-key, no per-token billing, nothing to sign up for. There's an optional ElevenLabs
-backend if you want a better voice, but start free; it's usually
-[the voice download](#make-it-sound-good-free-two-minutes) you actually want, not
-a paid API.
+There is no model here, and no parsing of your agent's output — `sayeth` never
+sees it. **Whatever you hear is exactly the string your agent passed in**, so the
+quality of the audio is the quality of that sentence. Getting your agent to write
+a good one is [the part that matters](#teaching-it-to-say-something-worth-hearing),
+and most of this README is about that.
+
+Speech comes from the macOS `say` voice already on your Mac: no account, no API
+key, no per-token billing, nothing to sign up for. An
+[ElevenLabs backend](#using-elevenlabs) is available if you want a better voice,
+but try [the free voice download](#make-it-sound-good-free-two-minutes) first —
+that is usually the actual fix.
+
+### The one thing it changes about your text
+
+`sayeth` truncates. If the string exceeds the character limit (400 by default),
+it cuts at the last sentence boundary that fits.
+
+**Truncating is not summarizing.** It keeps the *beginning* of the string and
+discards the rest, so it cannot find a conclusion buried at the end — piping a
+whole response in gets you the opening preamble, spoken confidently, with the
+result cut off. See [why that matters](#why-this-isnt-optional).
+
+Control the limit per call or in config, or turn it off with `0`:
+
+```bash
+sayeth --max-chars 200 "shorter, please"
+```
+
+```bash
+sayeth config set maxChars 200
+```
+
+To make the spoken lines genuinely shorter rather than merely cut off, change
+what your agent writes — see [brevity](#controlling-brevity).
 
 > **You will rarely type this yourself.** Your agent does. Everything below is
 > about teaching it when to.
@@ -161,11 +188,10 @@ wrong thing is worse than silence.
 | a list of changed files | "Migration done. Fourteen tables, no errors." |
 | "I have completed the task you requested and…" | "Done. Two files changed." |
 
-**Why this isn't optional.** `sayeth` caps at 400 characters — but it keeps the
-**first** 400, trimmed to a sentence boundary. It has no way to find your
-conclusion, because it never saw the thing you're concluding about.
+### Why this isn't optional
 
-So piping a whole response in fails in the worst possible way:
+Truncation keeps the **first** 400 characters, so piping a whole response in
+fails in the worst possible way:
 
 ```bash
 echo "I will now begin working on the task you requested. First I examined
@@ -179,6 +205,65 @@ spoken at all. The cap is a seatbelt, not a summarizer.
 
 **One call per reply.** Never inside a loop, a subagent, or a background job. Ten
 parallel agents talking over each other is the fastest way to uninstall this.
+
+## Controlling brevity
+
+Two different levers, and the difference matters:
+
+| | What it does |
+|---|---|
+| `maxChars` | **Truncates.** A hard ceiling on what gets spoken. |
+| `style` | **Instructs.** Free-text guidance your agent reads before writing the line. |
+
+Truncation alone can't make a summary succinct — cutting a rambling sentence
+gives you a rambling fragment. To get genuinely shorter output you have to change
+what your agent *writes*.
+
+`sayeth` wires the two together: **the cap you set is written into the
+instructions**, so lowering it changes the brief as well as enforcing it.
+
+```bash
+sayeth config set maxChars 120
+```
+
+```bash
+sayeth init
+```
+
+Re-running `init` rewrites the block in place. At 400 the agent is asked for
+"one or two sentences"; at 250, "one sentence"; at 120, "ONE short sentence,
+under 120 characters."
+
+### Saying what you actually want to hear
+
+`style` is free text appended to the instructions, so you can ask for anything:
+
+```bash
+sayeth config set style "Always name the git branch. Never sound enthusiastic."
+```
+
+```bash
+sayeth init
+```
+
+Useful ones:
+
+| Goal | `style` |
+|---|---|
+| Just the verdict | `"State only the outcome. No process, no narration."` |
+| Failures matter more | `"If anything failed, lead with the failure and name the file."` |
+| Context you keep asking for | `"Always include the branch name and the test count."` |
+| Less personality | `"Be dry and factual. No enthusiasm, no adjectives."` |
+| Timing | `"Mention how long the task took if it was over a minute."` |
+
+Check what your agent will actually read:
+
+```bash
+sayeth init --print
+```
+
+Both settings only take effect for **new** agent sessions, since the instructions
+are read at session start.
 
 ## Make it sound good (free, two minutes)
 

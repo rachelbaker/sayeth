@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   applyBlock, detectTarget, runInit, block, INSTRUCTIONS, BEGIN, END, TARGETS,
+  instructions, lengthGuidance,
 } from '../src/init.mjs'
 
 const dir = () => mkdtempSync(join(tmpdir(), 'sayeth-init-'))
@@ -130,4 +131,60 @@ test('the block still carries the three things that actually prevent failures', 
   assert.match(INSTRUCTIONS, /FIRST 400/, 'must warn that trimming keeps the beginning')
   assert.match(INSTRUCTIONS, /One call per reply/, 'must prevent overlapping speech')
   assert.match(INSTRUCTIONS, /mute/, 'must stop agents working around a mute')
+})
+
+test('it never claims to summarize, because it does not', () => {
+  // The word the README kept getting wrong. Truncation is not summarization,
+  // and an agent told otherwise will hand over a whole response expecting it to
+  // be condensed.
+  assert.match(INSTRUCTIONS, /does\s+not\s+summarize/, 'must say plainly that it does not summarize')
+  assert.match(INSTRUCTIONS, /truncat/i, 'must name the operation it actually performs')
+})
+
+test('a lower maxChars changes what the agent is ASKED to write, not just the cap', () => {
+  // Truncating a rambling line yields a rambling fragment, so the cap has to
+  // reach the instructions to have any effect on succinctness.
+  assert.match(instructions({ maxChars: 400 }), /one or two sentences, under 400 characters/)
+  assert.match(instructions({ maxChars: 250 }), /one sentence, under 250 characters/)
+  assert.match(instructions({ maxChars: 120 }), /ONE short sentence, under 120 characters/)
+})
+
+test('the stated cap always matches the cap actually enforced', () => {
+  for (const maxChars of [120, 250, 400, 1000]) {
+    const text = instructions({ maxChars })
+    assert.match(text, new RegExp(`FIRST ${maxChars} characters`),
+      `block for maxChars=${maxChars} must quote that same number`)
+  }
+})
+
+test('lengthGuidance degrades sensibly when the cap is disabled', () => {
+  assert.equal(lengthGuidance(0), 'a sentence or two')
+  assert.equal(lengthGuidance(null), 'a sentence or two')
+})
+
+test('user style is appended, and appended LAST so it wins', () => {
+  const text = instructions({ style: 'Always name the git branch.' })
+  assert.match(text, /- Always name the git branch\./)
+  const idx = text.indexOf('Always name the git branch')
+  assert.ok(idx > text.indexOf('One call per reply'), 'user guidance must come after the defaults')
+  assert.ok(text.trimEnd().endsWith('Always name the git branch.'), 'and be the final line')
+})
+
+test('no style means no stray bullet', () => {
+  const text = instructions({ style: null })
+  assert.ok(!text.includes('- \n') && !text.trimEnd().endsWith('-'))
+  assert.equal(text, instructions({}))
+})
+
+test('style is trimmed, so a copy-pasted newline does not break the block', () => {
+  const text = instructions({ style: '  Be dry and factual.\n' })
+  assert.match(text, /- Be dry and factual\.$/)
+})
+
+test('runInit honours custom instruction text', () => {
+  const cwd = dir()
+  runInit({ cwd, text: '## Custom\n\nmy own rules' })
+  const body = readFileSync(join(cwd, 'AGENTS.md'), 'utf8')
+  assert.match(body, /my own rules/)
+  assert.ok(body.includes(BEGIN) && body.includes(END), 'still marker-fenced so re-runs update in place')
 })

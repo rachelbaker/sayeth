@@ -19,7 +19,7 @@ import { trimToSpoken } from './text.mjs'
 import {
   readMute, setMute, clearMute, parseDuration, formatDuration, describeMute, MAX_MUTE_MS,
 } from './mute.mjs'
-import { runInit, block, TARGETS, TARGET_NAMES } from './init.mjs'
+import { runInit, block, instructions, TARGETS, TARGET_NAMES } from './init.mjs'
 
 const HELP = `sayeth — spoken output for coding agents
 
@@ -246,7 +246,12 @@ function runInitCommand(args) {
     }
   }
 
-  if (print) return void process.stdout.write(block() + '\n')
+  // Written instructions follow the user's config: maxChars sets the length the
+  // agent is asked to write to, and `style` adds their own guidance.
+  const cfg = loadConfig()
+  const text = instructions({ maxChars: cfg.maxChars, style: cfg.style })
+
+  if (print) return void process.stdout.write(block(text) + '\n')
 
   if (target && !TARGETS[target]) {
     fail(`sayeth: unknown agent "${target}". Known: ${TARGET_NAMES.join(', ')}`)
@@ -255,7 +260,7 @@ function runInitCommand(args) {
     fail('sayeth: --file needs a real path, not ~ (your shell usually expands it; quote it and it will not).')
   }
 
-  const { path, action, label } = runInit({ target, file })
+  const { path, action, label } = runInit({ target, file, text })
 
   const said = {
     created: `created ${path}`,
