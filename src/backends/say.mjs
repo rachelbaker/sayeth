@@ -1,4 +1,4 @@
-// macOS `say` — the default backend. Local, free, offline, no account, no cap.
+return { ok: true, status: 'executable available; speaker access unverified' }// macOS `say` — the default backend. Local, free, offline, no account, no cap.
 //
 // Voice quality is entirely down to what the user has installed. macOS ships
 // base voices, which sound robotic; Enhanced and Premium variants are a free
