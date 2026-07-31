@@ -30,69 +30,46 @@ the last line, if that.
 sayeth "Deploy verified. All routes healthy, nothing in the logs."
 ```
 
-### How it works
+You will rarely run this yourself. Your agent runs it, and most of this README is
+about teaching it when and what to say.
 
-Your agent composes that sentence and passes it to `sayeth` as an argument.
-`sayeth` speaks it aloud. That is the entire mechanism.
+## How it works
 
-There is no model here, and no parsing of your agent's output — `sayeth` never
-sees it. **Whatever you hear is exactly the string your agent passed in**, so the
-quality of the audio is the quality of that sentence. Getting your agent to write
-a good one is [the part that matters](#teaching-it-to-say-something-worth-hearing),
-and most of this README is about that.
+Your agent composes a sentence and passes it to `sayeth`. `sayeth` speaks it.
+That is the whole mechanism — no model, no parsing of your agent's output, which
+`sayeth` never sees.
+
+**What you hear is exactly the string your agent passed in.** The audio is only
+as good as that sentence, which is why [shaping what it says](#shaping-what-it-says)
+is the part that decides whether you keep this installed.
+
+The only change `sayeth` makes is **truncation**: strings over the character
+limit (400 by default) are cut at the last sentence boundary that fits.
+Truncation keeps the *beginning*, so it cannot find a conclusion at the end —
+pipe a whole response in and you hear the preamble, never the result.
 
 Speech comes from the macOS `say` voice already on your Mac: no account, no API
-key, no per-token billing, nothing to sign up for. An
-[ElevenLabs backend](#using-elevenlabs) is available if you want a better voice,
-but try [the free voice download](#make-it-sound-good-free-two-minutes) first —
-that is usually the actual fix.
+key, no per-token billing. An [ElevenLabs backend](#using-elevenlabs) is available
+if you want a better voice, but try [a free voice download](#get-a-better-voice)
+first — that is usually the real fix.
 
-### The one thing it changes about your text
-
-`sayeth` truncates. If the string exceeds the character limit (400 by default),
-it cuts at the last sentence boundary that fits.
-
-**Truncating is not summarizing.** It keeps the *beginning* of the string and
-discards the rest, so it cannot find a conclusion buried at the end — piping a
-whole response in gets you the opening preamble, spoken confidently, with the
-result cut off. See [why that matters](#why-this-isnt-optional).
-
-Control the limit per call or in config, or turn it off with `0`:
-
-```bash
-sayeth --max-chars 200 "shorter, please"
-```
-
-```bash
-sayeth config set maxChars 200
-```
-
-To make the spoken lines genuinely shorter rather than merely cut off, change
-what your agent writes — see [brevity](#controlling-brevity).
-
-> **You will rarely type this yourself.** Your agent does. Everything below is
-> about teaching it when to.
-
-## Set it up
-
-Two steps: install the command, then tell your agent about it.
-
-### Step 1 — install the command
+## Install
 
 ```bash
 npm install -g sayeth
 ```
 
-Check it worked:
+Confirm it landed:
 
 ```bash
 sayeth --check
 ```
 
-For the local `say` backend, this confirms that the executable and voices are
-available. It cannot prove that the calling agent has access to the speakers.
+For the local `say` backend this verifies the executable and voices exist. It
+**cannot** confirm the calling agent can reach your speakers — see
+[sandboxed agents](#sandboxed-agents).
 
-### Step 2 — tell your agent about it
+## Connect it to your agent
 
 From inside your project:
 
@@ -100,43 +77,49 @@ From inside your project:
 sayeth init
 ```
 
-That's it. There is nothing to copy. `init` works out which agent the project is
-set up for, writes the instructions into that agent's file, and tells you exactly
-which file it touched:
+There is nothing to copy. `init` works out which agent the project uses, writes
+the instructions into that agent's file, and reports which file it touched.
 
 | It finds | It writes to |
 |---|---|
-| `AGENTS.md` — Codex, Zed, and most others | `AGENTS.md` |
+| `AGENTS.md` — Zed and most others | `AGENTS.md` |
 | `.cursorrules` | `.cursorrules` |
 | `.windsurfrules` | `.windsurfrules` |
 | `CONVENTIONS.md` — Aider | `CONVENTIONS.md` |
 | `CLAUDE.md` | `CLAUDE.md` |
 | nothing at all | creates `AGENTS.md`, the cross-tool convention |
 
-Then restart your agent so it re-reads the file.
+Restart your agent afterwards so it re-reads the file.
 
-**It's safe to re-run.** The block is fenced in `<!-- sayeth:begin -->` markers,
-so a second run updates in place rather than appending a duplicate — re-run it
-after upgrading to pick up revised instructions. Existing content in the file is
+Re-running `init` is safe. The block is fenced in `<!-- sayeth:begin -->` markers,
+so a second run updates it in place instead of appending a duplicate — re-run
+after upgrading to pick up revised instructions. Everything else in the file is
 left alone.
 
 ```bash
-sayeth init --print              # see the block, write nothing
-sayeth init --agent codex        # include Codex host-audio guidance
-sayeth init --agent cursor       # override the detection
+sayeth init --print                      # show the block, write nothing
+sayeth init --agent codex                # Codex, incl. host-audio guidance
+sayeth init --agent cursor               # override detection
 sayeth init --file ~/.claude/CLAUDE.md   # write somewhere specific
 ```
 
-Codex shares `AGENTS.md` with other tools, so Sayeth cannot identify it from the
-filename alone. Use `--agent codex`; the generated instructions tell Codex to
-request direct host-audio access. Otherwise a sandboxed `sayeth` call can exit 0
-without producing audible output.
+### Sandboxed agents
 
-#### Claude Code: use the plugin instead
+Codex shares `AGENTS.md` with other tools, so `init` cannot identify it from the
+filename. Pass `--agent codex` and the generated instructions will tell Codex to
+request direct host-audio access:
 
-`init` works, but the plugin is better here — it adds a Stop hook that nudges
-once if a substantive turn ends without speaking, so it can't quietly stop
-happening:
+```bash
+sayeth init --agent codex
+```
+
+Without it, a sandboxed `sayeth` call **exits 0 while producing no sound** — the
+command succeeds, you hear nothing, and nothing reports an error.
+
+### Claude Code
+
+`init` works, but the plugin is better: it adds a Stop hook that nudges once when
+a substantive turn ends without speaking, so it cannot quietly stop happening.
 
 ```bash
 claude plugin marketplace add rachelbaker/sayeth
@@ -150,11 +133,11 @@ claude plugin install sayeth
 touch ~/.claude/sayeth-autoplay-on
 ```
 
-That last file is the on-switch. `rm` it to go quiet, `touch` it again to
-re-arm. Details in [`adapters/claude-code/`](adapters/claude-code/).
+That last file is the on-switch — `rm` it for silence, `touch` it to re-arm.
+Details in [`adapters/claude-code/`](adapters/claude-code/).
 
 <details>
-<summary>Doing it by hand instead</summary>
+<summary>Setting it up by hand instead</summary>
 
 <br>
 
@@ -180,29 +163,48 @@ After finishing a substantive task, speak a summary aloud — one or two sentenc
   While muted it is a silent no-op that still exits 0 — keep calling it normally.
 ````
 
-Longer variants — speak-only-when-asked, speak-only-after-slow-tasks — are in
+Variants — speak-only-when-asked, speak-only-after-slow-tasks — are in
 [`adapters/agents-md/`](adapters/agents-md/).
 
 </details>
 
-## Teaching it to say something worth hearing
+## Get a better voice
 
-This is the part that decides whether you keep it installed. A voice reading the
-wrong thing is worse than silence.
+**Do this before anything else.** It is free, takes two minutes, and is the
+difference between "neat" and "I turned it off."
 
-**Speak the conclusion, not the work.**
+macOS ships **base** voices. They sound like a 2009 GPS. **Enhanced** and
+**Premium** voices are a free download:
 
-| Don't say | Say |
+> System Settings → Accessibility → Spoken Content → System Voice →
+> **Manage Voices** → expand English → pick anything marked *Enhanced* or
+> *Premium* → download
+
+`sayeth` resolves the best installed voice at call time, so one you download later
+is used with **no config change**. Check what it found:
+
+```bash
+sayeth --list
+```
+
+If this sounds robotic to anyone, they have base voices. It is always that.
+
+## Shaping what it says
+
+A voice reading the wrong thing is worse than silence. This section is what
+decides whether the tool survives its first week.
+
+### Speak the conclusion, not the work
+
+| Instead of | Say |
 |---|---|
 | the full test output | "Tests pass. Forty-two of them, in nine seconds." |
 | the stack trace | "Build failed in the auth module — missing env var." |
 | a list of changed files | "Migration done. Fourteen tables, no errors." |
 | "I have completed the task you requested and…" | "Done. Two files changed." |
 
-### Why this isn't optional
-
-Truncation keeps the **first** 400 characters, so piping a whole response in
-fails in the worst possible way:
+The reason this is not merely stylistic: truncation keeps the **first** 400
+characters, so piping a whole response in fails in the worst possible way.
 
 ```bash
 echo "I will now begin working on the task you requested. First I examined
@@ -210,76 +212,58 @@ the configuration. Then I updated the handler. [...] The deploy is verified
 and all routes are healthy." | sayeth
 ```
 
-You hear *"I will now begin working on the task you requested. First I examined
-the configuration…"* and the deploy result — the only part you wanted — is never
-spoken at all. The cap is a seatbelt, not a summarizer.
+You hear *"I will now begin working on the task you requested…"* and the deploy
+result — the only part you wanted — is never spoken.
 
 **One call per reply.** Never inside a loop, a subagent, or a background job. Ten
 parallel agents talking over each other is the fastest way to uninstall this.
 
-## Structure: pauses
+### Use pauses as structure
 
-A listener has no headings, no bullets, no whitespace. A pause is the only
-structure available — so `//` in a spoken line becomes a short silence:
+A listener has no headings, bullets, or whitespace. A pause is the only structure
+available, so `//` becomes a short silence:
 
 ```bash
 sayeth "Two things need you. // One, approve the migration. // Two, the staging key expires Friday. // Everything else passed."
 ```
 
-You hear the count, a beat, each item separated by a beat, then the things that
-don't need you. The built-in instructions teach agents this shape, so you get it
-without configuring anything.
-
-Adjust the length, or set it to `0` to disable:
+You hear the count, a beat, each item, then what doesn't need you. The built-in
+instructions teach agents this shape, so it works without configuration.
 
 ```bash
-sayeth config set pauseMs 700
+sayeth config set pauseMs 700     # default 450; 0 disables
 ```
 
-On the `say` backend this is real silence (`[[slnc]]`). On ElevenLabs it becomes
-a sentence break, because engine-specific markup risks being read aloud.
+On `say` this is real silence (`[[slnc]]`). On ElevenLabs it becomes a sentence
+break, because engine-specific markup risks being read aloud.
 
-## Controlling brevity
+### Make it shorter
 
-Two different levers, and the difference matters:
+Two levers, and the difference matters:
 
 | | What it does |
 |---|---|
 | `maxChars` | **Truncates.** A hard ceiling on what gets spoken. |
-| `style` | **Instructs.** Free-text guidance your agent reads before writing the line. |
+| `style` | **Instructs.** Free-text guidance your agent reads before writing. |
 
-Truncation alone can't make a summary succinct — cutting a rambling sentence
-gives you a rambling fragment. To get genuinely shorter output you have to change
-what your agent *writes*.
-
-`sayeth` wires the two together: **the cap you set is written into the
-instructions**, so lowering it changes the brief as well as enforcing it.
+Truncation alone cannot make output succinct — cutting a rambling sentence gives
+you a rambling fragment. `sayeth` wires the two together: **the cap is written
+into the instructions**, so lowering it changes the brief as well as enforcing it.
 
 ```bash
-sayeth config set maxChars 120
+sayeth config set maxChars 120 && sayeth init
 ```
 
-```bash
-sayeth init
-```
+At 400 the agent is asked for one or two sentences; at 250, one sentence; at 120,
+"ONE short sentence, under 120 characters."
 
-Re-running `init` rewrites the block in place. At 400 the agent is asked for
-"one or two sentences"; at 250, "one sentence"; at 120, "ONE short sentence,
-under 120 characters."
-
-### Saying what you actually want to hear
+### Say what you actually want to hear
 
 `style` is free text appended to the instructions, so you can ask for anything:
 
 ```bash
-sayeth config set style "Always name the git branch. Never sound enthusiastic."
+sayeth config set style "Always name the git branch. Never sound enthusiastic." && sayeth init
 ```
-
-```bash
-sayeth init
-```
-
-Useful ones:
 
 | Goal | `style` |
 |---|---|
@@ -289,37 +273,14 @@ Useful ones:
 | Less personality | `"Be dry and factual. No enthusiasm, no adjectives."` |
 | Timing | `"Mention how long the task took if it was over a minute."` |
 
-Check what your agent will actually read:
+Both settings need `sayeth init` to take effect, and apply to **new** agent
+sessions — instructions are read at session start. Check what yours will read:
 
 ```bash
 sayeth init --print
 ```
 
-Both settings only take effect for **new** agent sessions, since the instructions
-are read at session start.
-
-## Make it sound good (free, two minutes)
-
-**Do this before anything else.** It costs nothing and it's the difference
-between "neat" and "I turned it off."
-
-macOS ships **base** voices. They sound like a 2009 GPS. **Enhanced** and
-**Premium** voices are a free download:
-
-> System Settings → Accessibility → Spoken Content → System Voice →
-> **Manage Voices** → expand English → pick anything marked *Enhanced* or
-> *Premium* → download
-
-`sayeth` resolves the best installed voice at call time, so a voice you download
-later is used with **no config change**. Check what it found:
-
-```bash
-sayeth --list
-```
-
-If anyone says this sounds robotic, they have base voices. It is always that.
-
-## Muting it for a while
+## Muting
 
 You're on a call, someone's asleep, you're recording. Silence it without
 uninstalling anything or editing config:
@@ -328,49 +289,30 @@ uninstalling anything or editing config:
 sayeth mute 30m
 ```
 
-Also takes `2h`, `90s`, `1h30m`, or a bare number for minutes. To mute with no
-end time:
+Accepts `2h`, `90s`, `1h30m`, or a bare number for minutes. `sayeth mute` with no
+duration lasts until you run `sayeth unmute`. `sayeth --check` reports where you
+stand.
 
-```bash
-sayeth mute
-```
+**Muted speaking is a no-op that still exits 0.** Your agent calls `sayeth` as
+usual and carries on — it just makes no sound. A mute is your choice, not a
+failure for the caller to report or retry, so nothing else in your agent's
+behaviour changes.
 
-Turn it back on:
+**Timed mutes expire on their own.** A forgotten `sayeth mute 30m` cannot leave
+you permanently silent; the deadline passes and the state file deletes itself.
 
-```bash
-sayeth unmute
-```
+Everything except speaking still works while muted — `--dry`, `--list`, `--check`,
+and all `config` commands. A duration that cannot be parsed is refused outright
+rather than guessed at, so a typo never mutes you for the wrong length of time.
 
-Check where you stand:
-
-```bash
-sayeth --check
-```
-
-**While muted, speaking is a no-op that still exits 0.** Your agent calls
-`sayeth` exactly as before and carries on normally — it just doesn't make a
-sound. A mute is your choice, not a failure for the caller to report or retry,
-so nothing in your agent's output changes.
-
-**A timed mute expires on its own.** A forgotten `sayeth mute 30m` can't leave
-you permanently silent — the deadline passes and the state file deletes itself.
-Only `sayeth mute` with no duration lasts until you unmute.
-
-Everything except speaking still works while muted: `--dry`, `--list`,
-`--check`, and all `config` commands. And a duration it can't parse is refused
-outright rather than guessed at, so a typo never mutes you for the wrong length
-of time.
-
-## Commands
-
-The full interface. Your agent only ever needs the first line; the rest is for
-you, setting it up.
+## Command reference
 
 ```bash
 sayeth "text to speak"           # speak it
 echo "text" | sayeth             # same, from stdin
-sayeth mute 30m                  # quiet for a while; also 2h, 90s, 1h30m
-sayeth mute                      # quiet until you say otherwise
+sayeth init                      # write instructions into your agent's file
+sayeth mute 30m                  # quiet for a while
+sayeth mute                      # quiet until further notice
 sayeth unmute
 ```
 
@@ -378,31 +320,43 @@ sayeth unmute
 |---|---|
 | `-b, --backend <name>` | `say` (default) or `elevenlabs` |
 | `-v, --voice <name>` | voice name for `say`, or voice **id** for elevenlabs |
-| `-r, --rate <wpm>` | speech rate for `say`. Default `180`; under 150 sounds sedated, over 220 gets choppy |
-| `--max-chars <n>` | length cap. Default `400`; `0` disables trimming |
-| `--dry` | print what *would* be spoken, and say nothing. Use this while tuning |
-| `--list` | list available voices and show which one is selected |
-| `--check` | report backend prerequisites and mute state; speaker access is not verified |
+| `-r, --rate <wpm>` | rate for `say`. Default `180`; under 150 sounds sedated, over 220 gets choppy |
+| `--max-chars <n>` | length cap. Default `400`; `0` disables truncation |
+| `--dry` | print what *would* be spoken, say nothing. Use this while tuning |
+| `--list` | list available voices and show which is selected |
+| `--check` | report backend prerequisites and mute state |
 | `-h, --help` | full help |
 | `--version` | version |
 | `--` | everything after this is text, not flags |
 
+`sayeth init` takes `--agent <name>`, `--file <path>`, and `--print`.
+
 ```bash
-sayeth config show               # effective config, with the API key redacted
+sayeth config show               # effective config, API key redacted
 sayeth config path               # where the config file lives
-sayeth config get <key>          # read one value
-sayeth config set <key> <value>  # write one value
+sayeth config get <key>
+sayeth config set <key> <value>
 sayeth config unset <key>        # back to the default
 ```
 
-Settable keys: `backend`, `maxChars`, `say.voice`, `say.rate`,
-`elevenlabs.apiKey`, `elevenlabs.voiceId`, `elevenlabs.modelId`,
-`elevenlabs.stability`, `elevenlabs.similarityBoost`.
+| Key | Default | |
+|---|---|---|
+| `backend` | `say` | `say` or `elevenlabs` |
+| `maxChars` | `400` | truncation cap; `0` disables |
+| `style` | *(none)* | free-text guidance written into the instructions |
+| `pauseMs` | `450` | silence per `//`; `0` disables |
+| `say.voice` | *(auto)* | pin a voice instead of auto-selecting |
+| `say.rate` | `180` | words per minute |
+| `elevenlabs.apiKey` | *(none)* | prefer the environment variable |
+| `elevenlabs.voiceId` | *(a default voice)* | from `--backend elevenlabs --list` |
+| `elevenlabs.modelId` | `eleven_flash_v2_5` | cheaper than the full model |
+| `elevenlabs.stability` | `0.5` | |
+| `elevenlabs.similarityBoost` | `0.75` | |
 
 ## Configuration
 
-Config lives at `~/.config/sayeth/config.json` (respects `XDG_CONFIG_HOME`) and
-is written `0600`, because it can hold an API key.
+Config lives at `~/.config/sayeth/config.json` (respects `XDG_CONFIG_HOME`) and is
+written `0600`, because it can hold an API key.
 
 **Precedence, highest first:** CLI flags → environment variables → config file →
 defaults.
@@ -414,22 +368,24 @@ defaults.
 | `SAYETH_RATE` | `say.rate` |
 | `SAYETH_MAX_CHARS` | `maxChars` |
 | `ELEVENLABS_API_KEY` | `elevenlabs.apiKey` |
+| `SAYETH_ELEVENLABS_API_KEY` | `elevenlabs.apiKey`, if the above is unset |
+| `SAYETH_ELEVENLABS_VOICE_ID` | `elevenlabs.voiceId` |
+| `SAYETH_ELEVENLABS_MODEL_ID` | `elevenlabs.modelId` |
 
 An exported-but-empty variable counts as unset, so a stray `export SAYETH_VOICE=`
-in a shell profile won't silently blank your config.
+in a shell profile will not silently blank your config.
 
 ## Using ElevenLabs
 
-The `say` backend is free and needs no setup. ElevenLabs sounds better, and
-bills your account per character — which is why it's opt-in. Full setup:
+The `say` backend is free and needs no setup. ElevenLabs sounds better and bills
+your account per character, which is why it is opt-in.
 
-**1. Get an API key.** Sign up at [elevenlabs.io](https://elevenlabs.io), then
-open your profile menu → **API Keys** → **Create API Key**. Copy it; the key is
-shown once. The free tier includes a monthly character allowance, so you can try
-this without a card.
+**1. Get an API key.** Sign up at [elevenlabs.io](https://elevenlabs.io), then open
+your profile menu → **API Keys** → **Create API Key**. Copy it; the key is shown
+once. The free tier includes a monthly character allowance, so you can try this
+without a card.
 
-**2. Give the key to `sayeth`.** Either put it in your environment, which keeps
-it out of files:
+**2. Give the key to `sayeth`.** The environment keeps it out of files:
 
 ```bash
 export ELEVENLABS_API_KEY=sk_your_key_here
@@ -441,14 +397,14 @@ Or store it in the config file, which is written `0600`:
 sayeth config set elevenlabs.apiKey sk_your_key_here
 ```
 
-**3. Confirm it's wired up.** This makes no API call and costs nothing:
+**3. Confirm it is wired up.** Makes no API call, costs nothing:
 
 ```bash
 sayeth --backend elevenlabs --check
 ```
 
-**4. Pick a voice.** This lists the voices on your account with their ids. It
-calls the voices endpoint, which doesn't consume character credits:
+**4. Pick a voice.** Lists your account's voices with their ids. Uses the voices
+endpoint, which does not consume character credits:
 
 ```bash
 sayeth --backend elevenlabs --list
@@ -458,19 +414,17 @@ sayeth --backend elevenlabs --list
 sayeth config set elevenlabs.voiceId <the-id-you-want>
 ```
 
-**5. Use it.** Either per-call, keeping `say` as your default:
+**5. Use it** per call, keeping `say` as the default:
 
 ```bash
 sayeth --backend elevenlabs "just this once, with the good voice"
 ```
 
-Or switch the default over entirely:
+Or switch over entirely — and back again:
 
 ```bash
 sayeth config set backend elevenlabs
 ```
-
-Going back to free is one command:
 
 ```bash
 sayeth config set backend say
@@ -478,25 +432,25 @@ sayeth config set backend say
 
 ### Cost control
 
-Defaults to `eleven_flash_v2_5`, roughly half the per-character price of the
-full model. Switch with `sayeth config set elevenlabs.modelId eleven_multilingual_v2`.
+The default model is `eleven_flash_v2_5`, roughly half the per-character price of
+the full model. Switch with `sayeth config set elevenlabs.modelId eleven_multilingual_v2`.
 
-The 400-character cap applies here too, so a single spoken line is a predictable
-worst case. Lower it with `sayeth config set maxChars 250`.
+The character cap applies here too, so one spoken line has a predictable worst
+case. Lower it with `sayeth config set maxChars 250`.
 
-⚠️ **Don't put a metered backend in an unattended job.** If an agent speaks on a
-cron or in a scheduled task, keep it on `say` — nobody is watching the meter.
+⚠️ **Never put a metered backend in an unattended job.** If an agent speaks from a
+cron or scheduled task, keep it on `say` — nobody is watching the meter.
 
 ### Errors you might hit
 
 | Message | Meaning |
 |---|---|
 | `no ElevenLabs API key` | Nothing in `ELEVENLABS_API_KEY` or the config file |
-| `ElevenLabs 401 — check ELEVENLABS_API_KEY` | Key is wrong, revoked, or has a typo |
-| `ElevenLabs 429 — rate limited or out of credits` | Monthly allowance exhausted, or too many calls |
+| `ElevenLabs 401 — check ELEVENLABS_API_KEY` | Key is wrong, revoked, or mistyped |
+| `ElevenLabs 429 — rate limited or out of credits` | Allowance exhausted, or too many calls |
 | `no audio player found` | Needs `afplay` (macOS), or `mpv`/`ffplay`/`mpg123` on Linux |
 
-## Calling it from JavaScript
+## JavaScript API
 
 ```js
 import { speak } from 'sayeth'
@@ -505,11 +459,15 @@ await speak('Migration finished. Fourteen tables, no errors.')
 await speak('Using the good voice.', { flags: { backend: 'elevenlabs' } })
 ```
 
+`speak()` resolves to `{ spoke: false, muted: true }` without speaking when a mute
+is active — a mute is not an error, so it does not throw. Pass
+`{ ignoreMute: true }` only for something the user asked for in the moment.
+
 ## Platform support
 
-The `say` backend is macOS-only — it wraps an Apple binary. The ElevenLabs
-backend runs anywhere Node does, playing through `afplay`, `mpv`, `ffplay`, or
-`mpg123`, whichever it finds first. Node 18+, zero dependencies.
+The `say` backend is macOS-only; it wraps an Apple binary. The ElevenLabs backend
+runs anywhere Node does, playing through `afplay`, `mpv`, `ffplay`, or `mpg123` —
+whichever it finds first. Node 18+, zero dependencies.
 
 ## Develop
 
@@ -517,23 +475,27 @@ backend runs anywhere Node does, playing through `afplay`, `mpv`, `ffplay`, or
 npm test
 ```
 
-54 tests that cost nothing to run: `say` is shimmed onto `PATH` so the suite is
-silent, and the ElevenLabs request builder is exported separately with an
-injectable `fetch`, so nothing ever hits the API.
+The suite is silent and free: `say` is shimmed onto `PATH`, and the ElevenLabs
+request builder is exported separately with an injectable `fetch`, so nothing ever
+reaches the API.
 
 <details>
-<summary>A parser bug worth knowing, if you're wrapping <code>say</code> yourself</summary>
+<summary>A <code>say</code> parsing trap, if you are wrapping it yourself</summary>
 
 <br>
 
 `say -v '?'` pads the voice-name column to 20 characters — but a name of **19 or
-more characters collapses the gap to a single space**. `Samantha (Enhanced)` is
-exactly 19.
+more characters collapses that gap to a single space**, and `Samantha (Enhanced)`
+is exactly 19.
 
-So any parser splitting on two-or-more spaces silently breaks on one of the most
-likely voices a user will install. `sayeth` anchors on the locale field at the
-end of the line instead, and handles numeric-region locales (`ar_001`) while
-it's there.
+Any parser splitting on two-or-more spaces therefore breaks on one of the most
+likely voices a user will install. `sayeth` anchors on the locale field at the end
+of the line instead, and handles numeric-region locales (`ar_001`) while it is
+there.
+
+`say` also reads `[[...]]` as embedded speech commands, so text containing double
+brackets is silently swallowed rather than spoken — "the array index `[[0]]` bug"
+loses the index. `sayeth` escapes them before inserting its own commands.
 
 </details>
 
