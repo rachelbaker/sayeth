@@ -215,3 +215,24 @@ test('runInit honours custom instruction text', () => {
   assert.match(body, /my own rules/)
   assert.ok(body.includes(BEGIN) && body.includes(END), 'still marker-fenced so re-runs update in place')
 })
+
+test('the README hand-paste block matches what init actually emits', () => {
+  // A merge silently reverted this block once: the README told people to paste
+  // instructions that no longer matched `sayeth init --print`, so hand-setup
+  // and automated setup produced different agent behaviour. Catch it in CI
+  // instead of by eye.
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+  const drift = INSTRUCTIONS.split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !readme.includes(l))
+  assert.deepEqual(drift, [], 'README block has drifted from src/init.mjs')
+})
+
+test('superseded wording never creeps back into the README', () => {
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+  // "a voice, not a summarizer" was the phrasing that confused people into
+  // asking whether it summarizes. The answer is stated positively now.
+  for (const stale of ['a voice, not a summarizer', 'one-or-two-sentence summary']) {
+    assert.ok(!readme.includes(stale), `README still contains superseded text: "${stale}"`)
+  }
+})

@@ -164,18 +164,20 @@ re-arm. Details in [`adapters/claude-code/`](adapters/claude-code/).
 ````markdown
 ## Spoken output
 
-After finishing a substantive task, speak a one-or-two-sentence summary:
+After finishing a substantive task, speak a summary aloud — one or two sentences, under 400 characters:
 
-    sayeth "Deploy verified. All routes healthy."
+    sayeth "Two things need you. // One, approve the migration. // Two, the staging key expires Friday. // Everything else passed."
 
-- Write that line deliberately. `sayeth` speaks exactly what you pass it — it is
-  a voice, not a summarizer, and it keeps only the FIRST 400 characters. Piping a
-  full response in means the user hears your preamble and never hears the result.
-  Never read code, tables, or file listings aloud.
+- `//` becomes a short spoken pause. A listener has no headings or bullets, so
+  pauses are the only structure available to you.
+- Anything the user must DO comes first: count them, then one per pause, as
+  above. What merely happened comes after. If nothing needs them, say so.
+- `sayeth` speaks exactly what you pass it. It does not summarize; it truncates,
+  keeping the FIRST 400 characters — so pass a line you wrote, never a whole
+  response, code, tables, or file listings.
 - One call per reply. Never inside a loop, a subagent, or a background job.
 - If the user wants quiet: `sayeth mute 30m` (or `sayeth mute`, `sayeth unmute`).
-  While muted it is a silent no-op that still exits 0 — keep calling it normally
-  rather than working around it.
+  While muted it is a silent no-op that still exits 0 — keep calling it normally.
 ````
 
 Longer variants — speak-only-when-asked, speak-only-after-slow-tasks — are in
