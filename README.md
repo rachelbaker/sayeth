@@ -89,6 +89,9 @@ Check it worked:
 sayeth --check
 ```
 
+For the local `say` backend, this confirms that the executable and voices are
+available. It cannot prove that the calling agent has access to the speakers.
+
 ### Step 2 — tell your agent about it
 
 From inside your project:
@@ -119,9 +122,15 @@ left alone.
 
 ```bash
 sayeth init --print              # see the block, write nothing
+sayeth init --agent codex        # include Codex host-audio guidance
 sayeth init --agent cursor       # override the detection
 sayeth init --file ~/.claude/CLAUDE.md   # write somewhere specific
 ```
+
+Codex shares `AGENTS.md` with other tools, so Sayeth cannot identify it from the
+filename alone. Use `--agent codex`; the generated instructions tell Codex to
+request direct host-audio access. Otherwise a sandboxed `sayeth` call can exit 0
+without producing audible output.
 
 #### Claude Code: use the plugin instead
 
@@ -371,7 +380,7 @@ sayeth unmute
 | `--max-chars <n>` | length cap. Default `400`; `0` disables trimming |
 | `--dry` | print what *would* be spoken, and say nothing. Use this while tuning |
 | `--list` | list available voices and show which one is selected |
-| `--check` | report whether the current backend is ready to use |
+| `--check` | report backend prerequisites and mute state; speaker access is not verified |
 | `-h, --help` | full help |
 | `--version` | version |
 | `--` | everything after this is text, not flags |
