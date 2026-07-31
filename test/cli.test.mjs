@@ -174,10 +174,17 @@ test('config rejects an unknown backend and an unknown key', async () => {
   assert.match(r.stderr, /is not a config key/)
 })
 
-test('--check reports say as ready', async () => {
+test('--check distinguishes executable availability from speaker access', async () => {
   const { stdout, code } = await run(['--check'])
   assert.equal(code, 0)
-  assert.match(stdout, /say: ready/)
+  assert.match(stdout, /say: executable available; speaker access unverified/)
+  assert.doesNotMatch(stdout, /say: ready/)
+})
+
+test('init --agent codex prints the host-audio requirement', async () => {
+  const { stdout, code } = await run(['init', '--agent', 'codex', '--print'])
+  assert.equal(code, 0)
+  assert.match(stdout, /sandbox_permissions.*require_escalated/)
 })
 
 test('--help and --version work', async () => {

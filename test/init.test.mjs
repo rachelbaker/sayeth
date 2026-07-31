@@ -190,6 +190,19 @@ test('no style means no stray bullet', () => {
   assert.equal(text, instructions({}))
 })
 
+test('Codex instructions require direct host-audio access', () => {
+  const text = instructions({ target: 'codex' })
+  assert.match(text, /direct host-audio access/)
+  assert.match(text, /sandbox_permissions.*require_escalated/)
+  assert.match(text, /exit 0.*inaudible/)
+})
+
+test('host-audio guidance is only added for Codex', () => {
+  for (const target of ['claude', 'cursor', 'windsurf', 'aider', 'zed', 'agents']) {
+    assert.doesNotMatch(instructions({ target }), /sandbox_permissions/)
+  }
+})
+
 test('style is trimmed, so a copy-pasted newline does not break the block', () => {
   const text = instructions({ style: '  Be dry and factual.\n' })
   assert.match(text, /- Be dry and factual\.$/)
