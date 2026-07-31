@@ -1,6 +1,6 @@
 {
   "name": "sayeth",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Spoken output for coding agents. macOS `say` by default (free, local, offline), ElevenLabs when you want the good voice.",
   "type": "module",
   "bin": {
