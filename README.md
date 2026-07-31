@@ -318,13 +318,13 @@ sayeth unmute
 
 | Option | What it does |
 |---|---|
-| `-b, --backend <name>` | `say` (default) or `elevenlabs` |
+| `-b, --backend <name>` | `say` (default), `command`, or `elevenlabs` |
 | `-v, --voice <name>` | voice name for `say`, or voice **id** for elevenlabs |
 | `-r, --rate <wpm>` | rate for `say`. Default `180`; under 150 sounds sedated, over 220 gets choppy |
 | `--max-chars <n>` | length cap. Default `400`; `0` disables truncation |
 | `--dry` | print what *would* be spoken, say nothing. Use this while tuning |
 | `--list` | list available voices and show which is selected |
-| `--check` | report backend prerequisites and mute state |
+| `--check` | report prerequisites and mute state, **then speak a test phrase** so you can tell whether audio actually reaches you. Skipped when muted, or when the backend bills per character |
 | `-h, --help` | full help |
 | `--version` | version |
 | `--` | everything after this is text, not flags |
@@ -347,6 +347,8 @@ sayeth config unset <key>        # back to the default
 | `pauseMs` | `450` | silence per `//`; `0` disables |
 | `say.voice` | *(auto)* | pin a voice instead of auto-selecting |
 | `say.rate` | `180` | words per minute |
+| `command.shell` | *(none)* | pipeline that speaks stdin — see [local engines](#local-open-source-engines) |
+| `command.voice` | *(none)* | substituted for `{{voice}}` in `command.shell` |
 | `elevenlabs.apiKey` | *(none)* | prefer the environment variable |
 | `elevenlabs.voiceId` | *(a default voice)* | from `--backend elevenlabs --list` |
 | `elevenlabs.modelId` | `eleven_flash_v2_5` | cheaper than the full model |
@@ -374,6 +376,53 @@ defaults.
 
 An exported-but-empty variable counts as unset, so a stray `export SAYETH_VOICE=`
 in a shell profile will not silently blank your config.
+
+## Local open-source engines
+
+The `say` backend is macOS-only, so on Linux and Windows there is no built-in
+free option. The `command` backend closes that: point it at any local TTS engine
+that reads stdin, and `sayeth` pipes text into it.
+
+```bash
+sayeth config set backend command
+sayeth config set command.shell "piper -m {{voice}} --output-raw | aplay -r 22050 -f S16_LE -t raw -"
+sayeth config set command.voice ~/voices/en_US-lessac-medium.onnx
+```
+
+```bash
+sayeth --check
+```
+
+One backend covers the whole ecosystem — including engines released after this
+was written — so `sayeth` depends on none of them and inherits none of their
+licences. Starting points:
+
+| Engine | Licence | `command.shell` |
+|---|---|---|
+| [Piper](https://github.com/OHF-Voice/piper1-gpl) | GPL-3.0 | `piper -m {{voice}} --output-raw \| aplay -r 22050 -f S16_LE -t raw -` |
+| [Kokoro](https://github.com/nazdridoy/kokoro-tts) | Apache 2.0 | `kokoro-tts - out.wav --format wav && afplay out.wav` |
+| [Chatterbox](https://www.resemble.ai/learn/models/chatterbox) | MIT | via its own CLI wrapper |
+| espeak-ng | GPL-3.0 | `espeak-ng -v en-us --stdout \| aplay` |
+| macOS `say` | — | `say -v "{{voice}}"` — handy for trying this out with no install |
+
+On macOS use `afplay -` in place of `aplay`.
+
+**Licences:** invoking a GPL binary as a separate process does not affect
+`sayeth`'s MIT licence, the same way an MIT tool may shell out to `ffmpeg`.
+Choosing what to install is yours. Two to avoid for commercial work: **XTTS v2**
+is non-commercial under CPML *and* Coqui shut down in 2024, so no one can sell
+you a licence; **F5-TTS** is CC-BY-NC.
+
+### Why there is no `{{text}}` placeholder
+
+Text comes from a language model, so it must never reach a shell. `{{voice}}` is
+substituted because it comes from your config, but **the spoken text is written
+to stdin, always** — which is why a summary containing backticks or `$(…)` is
+just words to be read aloud.
+
+`sayeth --check` can confirm the first command in your pipeline exists on `PATH`,
+then prove the rest by speaking through it. It cannot validate the pipeline
+statically, and does not pretend to.
 
 ## Using ElevenLabs
 

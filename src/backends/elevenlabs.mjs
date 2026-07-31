@@ -13,6 +13,7 @@ import { renderPauses } from '../text.mjs'
 
 export const name = 'elevenlabs'
 export const label = 'ElevenLabs'
+export const metered = true // billed per character, so --check must never speak
 
 const API = 'https://api.elevenlabs.io/v1'
 

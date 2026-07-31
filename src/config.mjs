@@ -23,6 +23,13 @@ export const DEFAULTS = {
     voice: null, // null = auto-pick the best installed English voice
     rate: 180, // wpm; <150 sounds sedated, >220 gets choppy
   },
+  // A user-supplied pipeline that speaks whatever arrives on stdin. Covers every
+  // local TTS engine without sayeth depending on any of them. There is no
+  // {{text}} placeholder on purpose — see src/backends/command.mjs.
+  command: {
+    shell: null, // e.g. "piper -m {{voice}} --output-raw | afplay -"
+    voice: null, // substituted for {{voice}}
+  },
   elevenlabs: {
     apiKey: null,
     voiceId: '21m00Tcm4TlvDq8ikWAM',
@@ -37,6 +44,8 @@ export const SETTABLE = new Set([
   'maxChars',
   'style',
   'pauseMs',
+  'command.shell',
+  'command.voice',
   'say.voice',
   'say.rate',
   'elevenlabs.apiKey',
@@ -116,8 +125,10 @@ export function loadConfig({ flags = {}, env = process.env, path = configPath() 
     backend: flags.backend,
     maxChars: flags.maxChars,
     say: prune({ voice: flags.voice, rate: flags.rate }),
-    // --voice on the elevenlabs backend means the voice id
+    // --voice means different things per backend: a voice name for say, a voice
+    // id for elevenlabs, a model path for a custom command.
     elevenlabs: prune({ voiceId: flags.backend === 'elevenlabs' ? flags.voice : undefined }),
+    command: prune({ voice: flags.backend === 'command' ? flags.voice : undefined }),
   })
 }
 

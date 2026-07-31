@@ -305,10 +305,46 @@ async function main() {
 
   if (flags.check) {
     const { ok, reason, status } = await backend.check(cfg)
+    const mute = readMute()
+
     process.stdout.write(`${cfg.backend}: ${ok ? (status ?? 'ready') : 'NOT ready'}\n`)
-    process.stdout.write(`muted:  ${describeMute(readMute())}\n`)
-    if (!ok) process.stdout.write(reason + '\n')
-    process.exit(ok ? 0 : 1)
+    const described = await backend.describe(cfg).catch(() => ({}))
+    for (const [k, v] of Object.entries(described)) {
+      process.stdout.write(`${(k + ':').padEnd(9)}${v}\n`)
+    }
+    process.stdout.write(`${'muted:'.padEnd(9)}${describeMute(mute)}\n`)
+
+    if (!ok) {
+      process.stdout.write('\n' + reason + '\n')
+      process.exit(1)
+    }
+
+    // A check that cannot detect "exited 0 but made no sound" is not a check,
+    // and that is the exact failure people hit: a sandboxed agent, a muted
+    // output device, an audio pipeline that silently drops frames. So speak.
+    if (mute.muted) {
+      process.stdout.write('\nSkipped the audio test — you are muted.\n')
+    } else if (backend.metered) {
+      // Speaking here would bill a real account nobody asked us to spend.
+      process.stdout.write(
+        `\nNot tested audibly: ${cfg.backend} bills per character.\n` +
+          `To hear it, ask for it: sayeth --backend ${cfg.backend} "test"\n`,
+      )
+    } else {
+      process.stdout.write('\nSpeaking a test phrase…\n')
+      try {
+        await backend.speak('Sayeth is working.', cfg)
+        process.stdout.write(
+          'Spoke without error. If you heard nothing, the audio never reached\n' +
+            'your speakers — check the volume, the output device, and whether\n' +
+            'the calling agent is sandboxed.\n',
+        )
+      } catch (err) {
+        process.stdout.write('FAILED while speaking.\n')
+        fail(err?.message ?? String(err))
+      }
+    }
+    process.exit(0)
   }
 
   if (flags.list) {

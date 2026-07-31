@@ -11,6 +11,7 @@ import { renderPauses, escapeSpeechCommands } from '../text.mjs'
 
 export const name = 'say'
 export const label = 'macOS say'
+export const metered = false // free and local, so --check can safely speak
 
 const TIERS = ['Premium', 'Enhanced'] // best first
 
