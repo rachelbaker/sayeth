@@ -29,7 +29,12 @@ export function lengthGuidance(maxChars) {
   return `one or two sentences, under ${maxChars} characters`
 }
 
-export function instructions({ maxChars = 400, style = null } = {}) {
+export function instructions({ maxChars = 400, style = null, target = null } = {}) {
+  const hostAudio = target === 'codex'
+    ? '\n- In Codex, run `sayeth` with direct host-audio access\n' +
+      '  (`sandbox_permissions: "require_escalated"`). A sandboxed call can exit 0 while remaining inaudible.'
+    : ''
+
   // The user's own guidance goes LAST, so it wins any argument with the
   // defaults above — it is the more specific instruction and they wrote it on
   // purpose.
@@ -50,7 +55,7 @@ After finishing a substantive task, speak a summary aloud — ${lengthGuidance(m
   response, code, tables, or file listings.
 - One call per reply. Never inside a loop, a subagent, or a background job.
 - If the user wants quiet: \`sayeth mute 30m\` (or \`sayeth mute\`, \`sayeth unmute\`).
-  While muted it is a silent no-op that still exits 0 — keep calling it normally.${custom}`
+  While muted it is a silent no-op that still exits 0 — keep calling it normally.${hostAudio}${custom}`
 }
 
 /** Default block, for callers that don't care about config. */

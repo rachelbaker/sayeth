@@ -246,19 +246,20 @@ function runInitCommand(args) {
     }
   }
 
-  // Written instructions follow the user's config: maxChars sets the length the
-  // agent is asked to write to, and `style` adds their own guidance.
-  const cfg = loadConfig()
-  const text = instructions({ maxChars: cfg.maxChars, style: cfg.style })
-
-  if (print) return void process.stdout.write(block(text) + '\n')
-
   if (target && !TARGETS[target]) {
     fail(`sayeth: unknown agent "${target}". Known: ${TARGET_NAMES.join(', ')}`)
   }
   if (file && file.startsWith('~')) {
     fail('sayeth: --file needs a real path, not ~ (your shell usually expands it; quote it and it will not).')
   }
+
+  // Written instructions follow the user's config: maxChars sets the length the
+  // agent is asked to write to, `style` adds their own guidance, and an explicit
+  // target can add runtime-specific requirements.
+  const cfg = loadConfig()
+  const text = instructions({ maxChars: cfg.maxChars, style: cfg.style, target })
+
+  if (print) return void process.stdout.write(block(text) + '\n')
 
   const { path, action, label } = runInit({ target, file, text })
 
@@ -303,8 +304,8 @@ async function main() {
   const backend = getBackend(cfg.backend)
 
   if (flags.check) {
-    const { ok, reason } = await backend.check(cfg)
-    process.stdout.write(`${cfg.backend}: ${ok ? 'ready' : 'NOT ready'}\n`)
+    const { ok, reason, status } = await backend.check(cfg)
+    process.stdout.write(`${cfg.backend}: ${ok ? (status ?? 'ready') : 'NOT ready'}\n`)
     process.stdout.write(`muted:  ${describeMute(readMute())}\n`)
     if (!ok) process.stdout.write(reason + '\n')
     process.exit(ok ? 0 : 1)

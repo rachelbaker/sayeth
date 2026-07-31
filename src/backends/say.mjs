@@ -84,7 +84,7 @@ export async function resolveVoice(cfg) {
 export async function check() {
   try {
     await run('say', ['-v', '?'])
-    return { ok: true }
+    return { ok: true, status: 'executable available; speaker access unverified' }
   } catch {
     return { ok: false, reason: '`say` not found — this backend is macOS only.' }
   }

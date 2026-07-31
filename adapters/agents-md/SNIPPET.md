@@ -41,7 +41,8 @@ still exits 0 — keep calling it normally, and don't substitute another audio
 tool. Timed mutes expire on their own.
 
 `sayeth --list` shows available voices; `sayeth --dry "..."` prints what would
-be spoken without speaking it; `sayeth --check` reports mute state.
+be spoken without speaking it; `sayeth --check` reports backend prerequisites
+and mute state, but cannot verify speaker access.
 ```
 
 ## To here
@@ -65,3 +66,7 @@ be spoken without speaking it; `sayeth --check` reports mute state.
 Agents that spawn subagents need the "one call per turn" rule stated
 explicitly. Without it, a fan-out of ten workers becomes ten voices talking
 over each other, which is the fastest way to make someone uninstall this.
+
+For Codex, prefer `sayeth init --agent codex` instead of copying the generic
+block. It adds the direct host-audio requirement Codex needs: a sandboxed
+invocation can exit 0 while remaining inaudible.
